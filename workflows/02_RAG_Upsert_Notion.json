@@ -1,0 +1,195 @@
+{
+  "name": "[02] RAG_Upsert_Notion — Notion知識庫向量化",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "run-trigger-001",
+      "name": "每日06:00同步",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "={{ $env.NOTION_KNOWLEDGE_DB_ID }}",
+        "returnAll": false,
+        "limit": 50,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "向量化狀態|select|equals",
+              "condition": "equals",
+              "value": "待同步"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "run-notion-002",
+      "name": "讀取Notion待同步頁面",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [460, 300],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "empty-check",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ]
+        }
+      },
+      "id": "run-emptycheck-003",
+      "name": "有待同步頁面?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 提取Notion頁面內容並格式化\nconst page = $json;\nconst pageId = page.id;\nconst props = page.properties || {};\n\nconst getText = (prop) => {\n  if (!prop) return '';\n  if (prop.type === 'title') return (prop.title || []).map(t => t.plain_text).join('');\n  if (prop.type === 'rich_text') return (prop.rich_text || []).map(t => t.plain_text).join('');\n  if (prop.type === 'select') return prop.select?.name || '';\n  if (prop.type === 'multi_select') return (prop.multi_select || []).map(s => s.name).join(', ');\n  if (prop.type === 'date') return prop.date?.start || '';\n  return '';\n};\n\n// 組合成向量化文本\nconst title = getText(props['名稱'] || props['Name'] || props['標題']);\nconst content = getText(props['內容'] || props['Content'] || props['摘要']);\nconst tags = getText(props['標籤'] || props['Tags']);\nconst category = getText(props['分類'] || props['Category']);\n\nconst vectorText = `標題：${title}\\n分類：${category}\\n標籤：${tags}\\n內容：${content}`;\n\nreturn [{\n  json: {\n    page_id: pageId,\n    title,\n    content: vectorText,\n    category,\n    tags,\n    source: 'notion',\n    created_at: new Date().toISOString(),\n    metadata: {\n      notion_url: `https://notion.so/${pageId.replace(/-/g, '')}`,\n      category,\n      tags\n    }\n  }\n}];"
+      },
+      "id": "run-extract-004",
+      "name": "提取頁面內容",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "collection": "knowledge_base",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "knowledge_base",
+          "mode": "name"
+        },
+        "options": {
+          "vectorField": "content_vector"
+        }
+      },
+      "id": "run-qdrant-005",
+      "name": "Upsert到Qdrant",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [1120, 200],
+      "credentials": {
+        "qdrantApi": { "id": "qdrant-cred", "name": "Qdrant API" }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "run-embed-006",
+      "name": "OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.1,
+      "position": [1120, 380],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{ $('提取頁面內容').item.json.page_id }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "向量化狀態|select",
+              "selectValue": "已同步"
+            },
+            {
+              "key": "同步時間|date",
+              "includeTime": true,
+              "date": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "run-update-007",
+      "name": "更新Notion同步狀態",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1340, 200],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const count = $input.all().length;\nreturn [{\n  json: {\n    status: 'completed',\n    synced_pages: count,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "run-summary-008",
+      "name": "生成同步摘要",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'no_pages', message: '今日無待同步頁面', timestamp: new Date().toISOString() } }];"
+      },
+      "id": "run-noop-009",
+      "name": "無需同步",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 420]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "每日06:00同步": {
+      "main": [[{ "node": "讀取Notion待同步頁面", "type": "main", "index": 0 }]]
+    },
+    "讀取Notion待同步頁面": {
+      "main": [[{ "node": "有待同步頁面?", "type": "main", "index": 0 }]]
+    },
+    "有待同步頁面?": {
+      "main": [
+        [{ "node": "提取頁面內容", "type": "main", "index": 0 }],
+        [{ "node": "無需同步", "type": "main", "index": 0 }]
+      ]
+    },
+    "提取頁面內容": {
+      "main": [[{ "node": "Upsert到Qdrant", "type": "main", "index": 0 }]]
+    },
+    "Upsert到Qdrant": {
+      "main": [[{ "node": "更新Notion同步狀態", "type": "main", "index": 0 }]]
+    },
+    "更新Notion同步狀態": {
+      "main": [[{ "node": "生成同步摘要", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Embeddings": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000002-run-0000-0000-000000000002",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "02-rag-upsert-notion",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

@@ -1,0 +1,104 @@
+{
+  "name": "[03] RAG_Upsert_Structured — 結構化數據向量化",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rag-upsert-structured",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "rus-webhook-001",
+      "name": "Webhook接收數據",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 接收並驗證傳入數據\nconst body = $json.body || $json;\nconst data = body.data || body;\nconst collection = body.collection || 'knowledge_base';\nconst source = body.source || 'unknown';\n\n// 標準化數據格式\nif (Array.isArray(data)) {\n  return data.map(item => ({\n    json: {\n      ...item,\n      _collection: collection,\n      _source: source,\n      _processed_at: new Date().toISOString()\n    }\n  }));\n} else {\n  return [{\n    json: {\n      ...data,\n      _collection: collection,\n      _source: source,\n      _processed_at: new Date().toISOString()\n    }\n  }];\n}"
+      },
+      "id": "rus-validate-002",
+      "name": "驗證並標準化數據",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 將結構化數據轉換為可向量化的文本\nconst item = $json;\nconst collection = item._collection;\n\n// 根據collection類型決定文本生成策略\nlet vectorText = '';\nlet pointId = '';\n\nswitch(collection) {\n  case 'customer_data':\n    vectorText = [\n      `客戶資料：${item.name || ''}`,\n      `需求：${item.requirements || item.interest || ''}`,\n      `預算：${item.budget || ''}`,\n      `時間：${item.timeline || ''}`,\n      `來源：${item.source || ''}`,\n      `備註：${item.notes || ''}`\n    ].filter(Boolean).join('\\n');\n    pointId = item.form_response_id || item.id || Date.now().toString();\n    break;\n    \n  case 'sales_insights':\n    vectorText = [\n      `銷售洞察：${item.title || ''}`,\n      `內容：${item.content || ''}`,\n      `來源：${item.source || ''}`,\n      `日期：${item.date || ''}`\n    ].filter(Boolean).join('\\n');\n    pointId = item.id || Date.now().toString();\n    break;\n    \n  default: // knowledge_base\n    vectorText = [\n      `標題：${item.title || ''}`,\n      `內容：${item.content || item.description || ''}`,\n      `分類：${item.category || ''}`,\n      `來源：${item._source || ''}`,\n      `標籤：${Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || '')}`\n    ].filter(Boolean).join('\\n');\n    pointId = item.id || Buffer.from(item.url || item.title || '').toString('base64').substring(0, 20);\n}\n\nreturn [{\n  json: {\n    ...item,\n    _vector_text: vectorText,\n    _point_id: pointId.replace(/[^a-zA-Z0-9-]/g, '_').substring(0, 36)\n  }\n}];"
+      },
+      "id": "rus-transform-003",
+      "name": "轉換為向量文本",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "={{ $json._collection }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "rus-qdrant-004",
+      "name": "Qdrant向量Upsert",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "qdrantApi": { "id": "qdrant-cred", "name": "Qdrant API" }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "rus-embed-005",
+      "name": "OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.1,
+      "position": [900, 480],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'upserted', collection: $json._collection, point_id: $json._point_id, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "rus-respond-006",
+      "name": "回應成功",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook接收數據": {
+      "main": [[{ "node": "驗證並標準化數據", "type": "main", "index": 0 }]]
+    },
+    "驗證並標準化數據": {
+      "main": [[{ "node": "轉換為向量文本", "type": "main", "index": 0 }]]
+    },
+    "轉換為向量文本": {
+      "main": [[{ "node": "Qdrant向量Upsert", "type": "main", "index": 0 }]]
+    },
+    "Qdrant向量Upsert": {
+      "main": [[{ "node": "回應成功", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Embeddings": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000003-rus-0000-0000-000000000003",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "03-rag-upsert-structured",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

@@ -1,0 +1,221 @@
+{
+  "name": "[08] Google_Form_Feedback_Engine — 表單反饋自動優化引擎",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "form-feedback-engine",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "gffe-webhook-001",
+      "name": "接收表單提交",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst formData = body.form_data || body;\n\n// 標準化表單數據\nconst processed = {\n  response_id: formData.response_id || `FR-${Date.now()}`,\n  form_id: formData.form_id || $env?.GOOGLE_FORM_ID || 'default',\n  submitted_at: new Date().toISOString(),\n  \n  // 客戶識別資訊\n  name: formData.name || formData['姓名'] || '',\n  contact: formData.contact || formData['聯絡方式'] || formData['LINE ID'] || '',\n  \n  // 成交相關（A類問題）\n  budget: formData.budget || formData['預算'] || '',\n  timeline: formData.timeline || formData['購買時間'] || '',\n  decision_maker: formData.decision_maker || formData['決策者'] || '',\n  \n  // 心理洞察（B類問題）\n  motivation: formData.motivation || formData['購買動機'] || '',\n  concern: formData.concern || formData['主要顧慮'] || '',\n  \n  // 篩選資訊（C類問題）\n  living_environment: formData.living_environment || formData['居住環境'] || '',\n  cat_experience: formData.cat_experience || formData['養貓經驗'] || '',\n  \n  // 行為追蹤（D類問題）\n  referral_source: formData.referral_source || formData['如何找到我們'] || '',\n  \n  // 原始數據保留\n  raw: formData,\n  \n  // 處理元數據\n  processing_stage: 'received',\n  is_analyzed: false\n};\n\nreturn [{ json: processed }];"
+      },
+      "id": "gffe-normalize-002",
+      "name": "標準化表單數據",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "spreadsheet",
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "value": "={{ $env.GOOGLE_SPREADSHEET_ID }}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "表單回應", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "回應ID": "={{ $json.response_id }}",
+            "提交時間": "={{ $json.submitted_at }}",
+            "姓名": "={{ $json.name }}",
+            "聯絡方式": "={{ $json.contact }}",
+            "預算": "={{ $json.budget }}",
+            "購買時間": "={{ $json.timeline }}",
+            "動機": "={{ $json.motivation }}",
+            "顧慮": "={{ $json.concern }}",
+            "居住環境": "={{ $json.living_environment }}",
+            "養貓經驗": "={{ $json.cat_experience }}",
+            "來源": "={{ $json.referral_source }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "gffe-sheet-003",
+      "name": "寫入Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [680, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $env.NOTION_FORMS_DB_ID }}",
+        "title": "={{ $json.response_id + ' — ' + ($json.name || '匿名') }}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "提交時間|date", "date": "={{ $json.submitted_at }}" },
+            { "key": "預算|select", "selectValue": "={{ $json.budget }}" },
+            { "key": "購買時間|select", "selectValue": "={{ $json.timeline }}" },
+            { "key": "狀態|select", "selectValue": "新回應" },
+            { "key": "跟進狀態|select", "selectValue": "待跟進" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gffe-notion-004",
+      "name": "同步到Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [680, 400],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/rag-upsert-structured",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: { ...($json), title: $json.response_id + ' 客戶資料', content: JSON.stringify($json) }, collection: 'customer_data', source: 'google_form' }) }}",
+        "options": {}
+      },
+      "id": "gffe-rag-005",
+      "name": "RAG向量化客戶數據",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 580]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI成交策略師（員工3）。請分析這份表單回應並評估成交潛力：\n\n回應數據：\n{{ JSON.stringify($json) }}\n\n請輸出JSON格式的評估：\n{\n  \"lead_score\": 1-10,\n  \"conversion_probability\": \"high/medium/low\",\n  \"key_signals\": [\"信號1\", \"信號2\"],\n  \"main_concern\": \"主要顧慮\",\n  \"recommended_approach\": \"建議的跟進方式\",\n  \"follow_up_message\": \"建議的第一條跟進訊息（繁體中文，100字以內）\",\n  \"urgency\": \"立即跟進/24小時內/本週內\"\n}",
+        "options": {}
+      },
+      "id": "gffe-score-agent-006",
+      "name": "AI潛客評分Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": { "temperature": 0.2, "maxTokens": 1000 }
+      },
+      "id": "gffe-llm-007",
+      "name": "LLM (評分)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [900, 500],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $json.output || $json.text || '{}';\nconst formData = $('標準化表單數據').item.json;\n\nlet score = {};\ntry {\n  const match = agentOutput.match(/\\{[\\s\\S]*\\}/);\n  score = match ? JSON.parse(match[0]) : { lead_score: 5, conversion_probability: 'medium' };\n} catch(e) {\n  score = { lead_score: 5, conversion_probability: 'medium', raw: agentOutput };\n}\n\nreturn [{\n  json: {\n    ...formData,\n    ai_score: score,\n    lead_score: score.lead_score || 5,\n    is_hot_lead: (score.lead_score || 0) >= 7\n  }\n}];"
+      },
+      "id": "gffe-parse-008",
+      "name": "解析評分結果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "hot-lead",
+              "leftValue": "={{ $json.is_hot_lead }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "gffe-hotcheck-009",
+      "name": "是熱門潛客?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "🔥 高潛力客戶！\n\n姓名：{{ $json.name }}\n聯絡：{{ $json.contact }}\n評分：{{ $json.lead_score }}/10\n預算：{{ $json.budget }}\n購買時間：{{ $json.timeline }}\n\n建議跟進：{{ $json.ai_score.recommended_approach }}\n緊急度：{{ $json.ai_score.urgency }}\n\n建議首訊：\n{{ $json.ai_score.follow_up_message }}",
+        "additionalFields": {}
+      },
+      "id": "gffe-urgent-notify-010",
+      "name": "立即通知(熱潛客)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1560, 200],
+      "credentials": {
+        "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'processed', response_id: $json.response_id, lead_score: $json.lead_score, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "gffe-respond-011",
+      "name": "回應處理完成",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "接收表單提交": {
+      "main": [[{ "node": "標準化表單數據", "type": "main", "index": 0 }]]
+    },
+    "標準化表單數據": {
+      "main": [
+        [
+          { "node": "寫入Google Sheet", "type": "main", "index": 0 },
+          { "node": "同步到Notion", "type": "main", "index": 0 },
+          { "node": "RAG向量化客戶數據", "type": "main", "index": 0 },
+          { "node": "AI潛客評分Agent", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "AI潛客評分Agent": {
+      "main": [[{ "node": "解析評分結果", "type": "main", "index": 0 }]]
+    },
+    "解析評分結果": {
+      "main": [[{ "node": "是熱門潛客?", "type": "main", "index": 0 }]]
+    },
+    "是熱門潛客?": {
+      "main": [
+        [{ "node": "立即通知(熱潛客)", "type": "main", "index": 0 }],
+        [{ "node": "回應處理完成", "type": "main", "index": 0 }]
+      ]
+    },
+    "立即通知(熱潛客)": {
+      "main": [[{ "node": "回應處理完成", "type": "main", "index": 0 }]]
+    },
+    "LLM (評分)": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000008-gffe-0000-000000000008",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "08-google-form-feedback-engine",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

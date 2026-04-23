@@ -1,0 +1,195 @@
+{
+  "name": "[07] Knowledge_Book_Generator — 知識書週報生成",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "kbg-trigger-001",
+      "name": "每週日20:00生成",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "long_term_memory",
+          "mode": "name"
+        },
+        "prompt": "本週學習的市場趨勢、AI技術、業務洞察",
+        "topK": 20,
+        "options": {}
+      },
+      "id": "kbg-qdrant-002",
+      "name": "查詢本週長期記憶",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "credentials": {
+        "qdrantApi": { "id": "qdrant-cred", "name": "Qdrant API" }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "kbg-embed-003",
+      "name": "查詢Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.1,
+      "position": [460, 380],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "spreadsheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "={{ $env.GOOGLE_SPREADSHEET_ID }}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "知識攝取日誌", "mode": "name" },
+        "options": {}
+      },
+      "id": "kbg-sheet-004",
+      "name": "讀取本週知識日誌",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 420],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 彙整所有數據\nconst memories = $('查詢本週長期記憶').all().map(i => i.json);\nconst logs = $('讀取本週知識日誌').all().map(i => i.json);\n\nconst weekStart = new Date();\nweekStart.setDate(weekStart.getDate() - 7);\n\n// 過濾本週數據\nconst weekLogs = logs.filter(l => {\n  const date = new Date(l.日期 || '');\n  return date >= weekStart;\n});\n\nconst stats = {\n  total_knowledge: weekLogs.length,\n  memories_retrieved: memories.length,\n  categories: {},\n  sources: {}\n};\n\nweekLogs.forEach(l => {\n  const cat = l.分類 || '未分類';\n  stats.categories[cat] = (stats.categories[cat] || 0) + 1;\n  const src = l.來源 || '未知';\n  stats.sources[src] = (stats.sources[src] || 0) + 1;\n});\n\nconst memoryTexts = memories.slice(0, 10).map(m => {\n  const meta = m.metadata || {};\n  return meta.summary || meta.content || JSON.stringify(m).substring(0, 200);\n}).join('\\n---\\n');\n\nconst logTexts = weekLogs.slice(0, 20).map(l => \n  `${l.日期} | ${l.分類} | ${l.標題}`\n).join('\\n');\n\nreturn [{\n  json: {\n    week_start: weekStart.toISOString().split('T')[0],\n    week_end: new Date().toISOString().split('T')[0],\n    stats,\n    memory_content: memoryTexts,\n    log_summary: logTexts\n  }\n}];"
+      },
+      "id": "kbg-merge-005",
+      "name": "彙整週數據",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI知識引擎（員工5），負責每週生成《知識書》週報。\n\n本週數據統計：\n- 週期：{{ $json.week_start }} 至 {{ $json.week_end }}\n- 攝取知識總量：{{ $json.stats.total_knowledge }} 條\n- 分類分布：{{ JSON.stringify($json.stats.categories) }}\n\n長期記憶摘要：\n{{ $json.memory_content }}\n\n知識日誌摘要：\n{{ $json.log_summary }}\n\n請生成《AI研發部門週報》，包含以下章節：\n\n# 第一章：本週市場洞察\n（市場趨勢、機會點、威脅）\n\n# 第二章：AI技術進展\n（本週發現的新技術、工具、方法）\n\n# 第三章：業務優化建議\n（基於本週學習的3-5個具體行動建議）\n\n# 第四章：競品情報\n（競爭對手動態摘要）\n\n# 第五章：下週研發重點\n（優先級排序的研發方向）\n\n# 第六章：知識庫成長報告\n（本週知識庫增長數據）\n\n請使用繁體中文，語氣專業，每個章節附上可執行的具體建議。",
+        "options": {}
+      },
+      "id": "kbg-agent-006",
+      "name": "知識書生成Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 4000
+        }
+      },
+      "id": "kbg-llm-007",
+      "name": "GPT-4o (知識書)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [900, 500],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $env.NOTION_KNOWLEDGE_DB_ID }}",
+        "title": "📚 週報 {{ $('彙整週數據').item.json.week_start }} — {{ $('彙整週數據').item.json.week_end }}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "類型|select", "selectValue": "週報" },
+            { "key": "日期|date", "date": "={{ new Date().toISOString().split('T')[0] }}" },
+            { "key": "向量化狀態|select", "selectValue": "待同步" }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "paragraph",
+              "textContent": "={{ $json.output || $json.text || '生成失敗，請重新執行' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "kbg-notion-008",
+      "name": "儲存到Notion知識庫",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1120, 300],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "📚 本週《AI研發部門知識書》已生成！\n\n週期：{{ $('彙整週數據').item.json.week_start }} ~ {{ $('彙整週數據').item.json.week_end }}\n攝取知識：{{ $('彙整週數據').item.json.stats.total_knowledge }} 條\n\n請至 Notion 查看完整報告：\nhttps://notion.so/{{ $env.NOTION_KNOWLEDGE_DB_ID }}",
+        "additionalFields": {}
+      },
+      "id": "kbg-telegram-009",
+      "name": "Telegram通知週報完成",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1340, 300],
+      "credentials": {
+        "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "每週日20:00生成": {
+      "main": [
+        [
+          { "node": "查詢本週長期記憶", "type": "main", "index": 0 },
+          { "node": "讀取本週知識日誌", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "查詢本週長期記憶": {
+      "main": [[{ "node": "彙整週數據", "type": "main", "index": 0 }]]
+    },
+    "讀取本週知識日誌": {
+      "main": [[{ "node": "彙整週數據", "type": "main", "index": 0 }]]
+    },
+    "彙整週數據": {
+      "main": [[{ "node": "知識書生成Agent", "type": "main", "index": 0 }]]
+    },
+    "知識書生成Agent": {
+      "main": [[{ "node": "儲存到Notion知識庫", "type": "main", "index": 0 }]]
+    },
+    "儲存到Notion知識庫": {
+      "main": [[{ "node": "Telegram通知週報完成", "type": "main", "index": 0 }]]
+    },
+    "GPT-4o (知識書)": {},
+    "查詢Embeddings": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000007-kbg-0000-0000-000000000007",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "07-knowledge-book-generator",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

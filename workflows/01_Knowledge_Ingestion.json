@@ -1,0 +1,177 @@
+{
+  "name": "[01] Knowledge_Ingestion — 知識攝取引擎",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "knowledge-ingestion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ki-webhook-001",
+      "name": "Webhook觸發",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 定義知識來源清單\nconst sources = [\n  {\n    name: 'Hacker News AI',\n    url: 'https://hn.algolia.com/api/v1/search?tags=story&query=AI+automation&hitsPerPage=10',\n    type: 'json',\n    field: 'hits',\n    titleField: 'title',\n    urlField: 'url',\n    category: 'AI技術'\n  },\n  {\n    name: 'GitHub Trending',\n    url: 'https://api.github.com/search/repositories?q=n8n+AI+agent&sort=stars&order=desc&per_page=5',\n    type: 'json',\n    field: 'items',\n    titleField: 'full_name',\n    urlField: 'html_url',\n    category: '開源工具'\n  },\n  {\n    name: 'Reddit AI',\n    url: 'https://www.reddit.com/r/artificial/hot.json?limit=10',\n    type: 'json_nested',\n    path: 'data.children',\n    titleField: 'data.title',\n    urlField: 'data.url',\n    category: 'AI社群'\n  }\n];\n\nreturn sources.map(s => ({ json: s }));"
+      },
+      "id": "ki-sources-002",
+      "name": "定義知識來源",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "ki-batch-003",
+      "name": "逐一處理來源",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 15000,
+          "response": { "response": { "responseFormat": "json" } }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "User-Agent", "value": "AI-RnD-Bot/1.0" }
+          ]
+        }
+      },
+      "id": "ki-fetch-004",
+      "name": "抓取數據",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析並清洗抓取的數據\nconst sourceInfo = $('逐一處理來源').item.json;\nconst rawData = $input.item.json;\n\nlet items = [];\ntry {\n  if (sourceInfo.type === 'json') {\n    items = rawData[sourceInfo.field] || [];\n  } else if (sourceInfo.type === 'json_nested') {\n    const path = sourceInfo.path.split('.');\n    let obj = rawData;\n    for (const key of path) { obj = obj[key]; }\n    items = obj || [];\n  }\n} catch(e) {\n  items = [];\n}\n\n// 標準化輸出格式\nconst processed = items.slice(0, 5).map(item => {\n  const getNestedValue = (obj, path) => {\n    return path.split('.').reduce((o, k) => (o && o[k] !== undefined) ? o[k] : null, obj);\n  };\n  \n  return {\n    json: {\n      title: getNestedValue(item, sourceInfo.titleField) || '無標題',\n      url: getNestedValue(item, sourceInfo.urlField) || '',\n      source: sourceInfo.name,\n      category: sourceInfo.category,\n      ingested_at: new Date().toISOString(),\n      content_preview: item.description || item.body || item.selftext || '',\n      metadata: {\n        stars: item.stargazers_count || 0,\n        score: item.score || 0,\n        language: item.language || ''\n      }\n    }\n  };\n});\n\nreturn processed.length > 0 ? processed : [{ json: { skipped: true, source: sourceInfo.name } }];"
+      },
+      "id": "ki-parse-005",
+      "name": "解析清洗數據",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "skip-check",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "ki-skipcheck-006",
+      "name": "跳過空數據",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/rag-upsert-structured",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: $json, collection: 'knowledge_base', source: 'knowledge_ingestion' }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "ki-rag-007",
+      "name": "送至RAG向量化",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "spreadsheet",
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "value": "={{ $env.GOOGLE_SPREADSHEET_ID }}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "知識攝取日誌", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "日期": "={{ $json.ingested_at }}",
+            "標題": "={{ $json.title }}",
+            "URL": "={{ $json.url }}",
+            "來源": "={{ $json.source }}",
+            "分類": "={{ $json.category }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ki-sheet-008",
+      "name": "寫入Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1560, 380],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'completed', timestamp: $now.toISO() }) }}"
+      },
+      "id": "ki-respond-009",
+      "name": "回應Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1800, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook觸發": {
+      "main": [[{ "node": "定義知識來源", "type": "main", "index": 0 }]]
+    },
+    "定義知識來源": {
+      "main": [[{ "node": "逐一處理來源", "type": "main", "index": 0 }]]
+    },
+    "逐一處理來源": {
+      "main": [[{ "node": "抓取數據", "type": "main", "index": 0 }]]
+    },
+    "抓取數據": {
+      "main": [[{ "node": "解析清洗數據", "type": "main", "index": 0 }]]
+    },
+    "解析清洗數據": {
+      "main": [[{ "node": "跳過空數據", "type": "main", "index": 0 }]]
+    },
+    "跳過空數據": {
+      "main": [
+        [],
+        [
+          { "node": "送至RAG向量化", "type": "main", "index": 0 },
+          { "node": "寫入Google Sheet", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "送至RAG向量化": {
+      "main": [[{ "node": "回應Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000001-ki-000-0000-000000000001",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "01-knowledge-ingestion",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

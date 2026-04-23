@@ -1,0 +1,198 @@
+{
+  "name": "[09] Daily_Briefing — AI研發部門每日執行簡報",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "daily-briefing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "db-webhook-001",
+      "name": "接收簡報請求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "spreadsheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "={{ $env.GOOGLE_SPREADSHEET_ID }}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "表單回應", "mode": "name" },
+        "options": {}
+      },
+      "id": "db-formdata-002",
+      "name": "讀取今日表單數據",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "spreadsheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "={{ $env.GOOGLE_SPREADSHEET_ID }}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "知識攝取日誌", "mode": "name" },
+        "options": {}
+      },
+      "id": "db-knowledge-003",
+      "name": "讀取今日知識日誌",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toISOString().split('T')[0];\n\n// 讀取表單回應\nconst formResponses = $('讀取今日表單數據').all()\n  .map(i => i.json)\n  .filter(r => r.提交時間 && r.提交時間.startsWith(today));\n\n// 讀取知識日誌\nconst knowledgeItems = $('讀取今日知識日誌').all()\n  .map(i => i.json)\n  .filter(k => k.日期 && k.日期.startsWith(today));\n\n// 計算KPI\nconst totalLeads = formResponses.length;\nconst hotLeads = formResponses.filter(r => parseInt(r.評分 || '0') >= 7).length;\n\nconst stats = {\n  date: today,\n  // 業務數據\n  new_leads: totalLeads,\n  hot_leads: hotLeads,\n  conversion_rate: totalLeads > 0 ? ((hotLeads / totalLeads) * 100).toFixed(1) + '%' : '0%',\n  // 知識學習\n  knowledge_ingested: knowledgeItems.length,\n  knowledge_categories: {},\n  // 預算來源分布\n  budget_distribution: {},\n  // 購買意向分布\n  timeline_distribution: {}\n};\n\nformResponses.forEach(r => {\n  if (r.預算) {\n    stats.budget_distribution[r.預算] = (stats.budget_distribution[r.預算] || 0) + 1;\n  }\n  if (r.購買時間) {\n    stats.timeline_distribution[r.購買時間] = (stats.timeline_distribution[r.購買時間] || 0) + 1;\n  }\n});\n\nknowledgeItems.forEach(k => {\n  const cat = k.分類 || '未分類';\n  stats.knowledge_categories[cat] = (stats.knowledge_categories[cat] || 0) + 1;\n});\n\n// 格式化簡報數據\nconst leadsText = formResponses.slice(0, 5).map(r =>\n  `• ${r.姓名 || '匿名'} | ${r.預算 || '未填'} | ${r.購買時間 || '未填'}`\n).join('\\n') || '• 今日無新詢問';\n\nconst knowledgeText = knowledgeItems.slice(0, 5).map(k =>\n  `• [${k.分類 || '未分類'}] ${k.標題 || ''}`.substring(0, 60)\n).join('\\n') || '• 今日無新知識攝取';\n\nreturn [{\n  json: {\n    stats,\n    leads_preview: leadsText,\n    knowledge_preview: knowledgeText,\n    raw_leads: formResponses,\n    raw_knowledge: knowledgeItems\n  }\n}];"
+      },
+      "id": "db-aggregate-004",
+      "name": "彙整每日數據",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI研發策略總監。基於今日數據，生成執行簡報並作出決策指令。\n\n今日數據：\n- 日期：{{ $json.stats.date }}\n- 新詢問：{{ $json.stats.new_leads }} 人\n- 高潛力客戶：{{ $json.stats.hot_leads }} 人\n- 轉換率：{{ $json.stats.conversion_rate }}\n- 今日攝取知識：{{ $json.stats.knowledge_ingested }} 條\n\n預算分布：{{ JSON.stringify($json.stats.budget_distribution) }}\n購買時程分布：{{ JSON.stringify($json.stats.timeline_distribution) }}\n\n新詢問詳情：\n{{ $json.leads_preview }}\n\n今日學習摘要：\n{{ $json.knowledge_preview }}\n\n請生成每日執行簡報，包含：\n1. 今日業務快照（3句話）\n2. 今日TOP 3機會點\n3. 今日TOP 2風險點\n4. 明日任務指令（給各AI員工的具體指令）\n5. 本週目標達成進度\n6. 一句激勵語\n\n用繁體中文，語氣簡練有力，像給總監看的執行摘要。",
+        "options": {}
+      },
+      "id": "db-director-agent-005",
+      "name": "總監AI決策Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": { "temperature": 0.5, "maxTokens": 1500 }
+      },
+      "id": "db-llm-006",
+      "name": "GPT-4o-mini (簡報)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [900, 500],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const report = $json.output || $json.text || '簡報生成失敗';\nconst stats = $('彙整每日數據').item.json.stats;\n\nconst telegramMessage = [\n  `📊 *AI研發部門日報* ${stats.date}`,\n  '',\n  `📥 新詢問：${stats.new_leads} 人`,\n  `🔥 高潛力：${stats.hot_leads} 人`,\n  `📈 轉換率：${stats.conversion_rate}`,\n  `📚 新知識：${stats.knowledge_ingested} 條`,\n  '',\n  '─────────────',\n  report.substring(0, 2000),\n  '─────────────',\n  `⏰ 生成時間：${new Date().toLocaleTimeString('zh-TW')}`\n].join('\\n');\n\nreturn [{\n  json: {\n    telegram_message: telegramMessage,\n    full_report: report,\n    stats\n  }\n}];"
+      },
+      "id": "db-format-007",
+      "name": "格式化簡報",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.telegram_message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "db-telegram-008",
+      "name": "發送Telegram日報",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1340, 200],
+      "credentials": {
+        "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $env.NOTION_INSIGHTS_DB_ID }}",
+        "title": "日報 {{ $json.stats.date }}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "類型|select", "selectValue": "每日簡報" },
+            { "key": "日期|date", "date": "={{ $json.stats.date }}" },
+            { "key": "新詢問數|number", "numberValue": "={{ $json.stats.new_leads }}" },
+            { "key": "熱潛客數|number", "numberValue": "={{ $json.stats.hot_leads }}" }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            { "type": "heading_2", "textContent": "執行摘要" },
+            { "type": "paragraph", "textContent": "={{ $json.full_report }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "db-notion-009",
+      "name": "存入Notion日報",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1340, 400],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'briefing_sent', date: $json.stats.date, leads: $json.stats.new_leads, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "db-respond-010",
+      "name": "回應完成",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "接收簡報請求": {
+      "main": [
+        [
+          { "node": "讀取今日表單數據", "type": "main", "index": 0 },
+          { "node": "讀取今日知識日誌", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "讀取今日表單數據": {
+      "main": [[{ "node": "彙整每日數據", "type": "main", "index": 0 }]]
+    },
+    "讀取今日知識日誌": {
+      "main": [[{ "node": "彙整每日數據", "type": "main", "index": 0 }]]
+    },
+    "彙整每日數據": {
+      "main": [[{ "node": "總監AI決策Agent", "type": "main", "index": 0 }]]
+    },
+    "總監AI決策Agent": {
+      "main": [[{ "node": "格式化簡報", "type": "main", "index": 0 }]]
+    },
+    "格式化簡報": {
+      "main": [
+        [
+          { "node": "發送Telegram日報", "type": "main", "index": 0 },
+          { "node": "存入Notion日報", "type": "main", "index": 0 },
+          { "node": "回應完成", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "GPT-4o-mini (簡報)": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000009-db-00000-0000-000000000009",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "09-daily-briefing",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}
