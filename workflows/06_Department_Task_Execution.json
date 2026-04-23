@@ -1,0 +1,221 @@
+{
+  "name": "[06] Department_Task_Execution — 部門任務執行引擎",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "department-task",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dte-webhook-001",
+      "name": "接收任務指令",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst task = body.task || {};\n\n// 任務路由表\nconst employeeMap = {\n  'automation': { id: 1, name: 'AI自動化架構師' },\n  'data_analysis': { id: 2, name: 'AI數據分析師' },\n  'conversion': { id: 3, name: 'AI成交策略師' },\n  'ux': { id: 4, name: 'AI用戶體驗優化師' },\n  'knowledge': { id: 5, name: 'AI知識引擎' },\n  'feedback': { id: 6, name: 'AI表單數據工程師' }\n};\n\nconst assignee = body.assignee || 'data_analysis';\nconst employee = employeeMap[assignee] || employeeMap['data_analysis'];\n\nreturn [{\n  json: {\n    task_id: `TASK-${Date.now()}`,\n    task_type: body.task_type || 'analysis',\n    assignee: assignee,\n    employee: employee,\n    content: body.content || body.task || '',\n    priority: body.priority || 'medium',\n    deadline: body.deadline || new Date(Date.now() + 24*60*60*1000).toISOString(),\n    context: body.context || {},\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "dte-route-002",
+      "name": "任務路由分配",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.assignee }}",
+                    "rightValue": "data_analysis",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "數據分析"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.assignee }}",
+                    "rightValue": "conversion",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "成交策略"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.assignee }}",
+                    "rightValue": "knowledge",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "知識引擎"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "id": "dte-switch-003",
+      "name": "任務分流",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI數據關聯分析師（員工2）。請執行以下分析任務：\n\n任務ID：{{ $json.task_id }}\n優先級：{{ $json.priority }}\n\n任務內容：\n{{ $json.content }}\n\n背景信息：\n{{ JSON.stringify($json.context) }}\n\n請提供：\n1. 詳細分析結果\n2. 3個可執行的數據洞察\n3. 建議的下一步行動\n4. 需要其他員工協助的事項（如有）\n\n輸出格式：JSON",
+        "options": {}
+      },
+      "id": "dte-data-agent-004",
+      "name": "數據分析Agent執行",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI成交策略師（員工3）。請執行以下成交優化任務：\n\n任務ID：{{ $json.task_id }}\n優先級：{{ $json.priority }}\n\n任務內容：\n{{ $json.content }}\n\n背景信息：\n{{ JSON.stringify($json.context) }}\n\n請提供：\n1. 成交策略建議\n2. 具體文案方向\n3. A/B測試設計\n4. 預期ROI\n\n輸出格式：JSON",
+        "options": {}
+      },
+      "id": "dte-conv-agent-005",
+      "name": "成交策略Agent執行",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI知識引擎（員工5）。請執行以下研究任務：\n\n任務ID：{{ $json.task_id }}\n優先級：{{ $json.priority }}\n\n任務內容：\n{{ $json.content }}\n\n背景信息：\n{{ JSON.stringify($json.context) }}\n\n請提供：\n1. 研究發現摘要\n2. 相關知識整理\n3. 可立即應用的洞察\n4. 推薦學習資源\n\n輸出格式：JSON",
+        "options": {}
+      },
+      "id": "dte-know-agent-006",
+      "name": "知識引擎Agent執行",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": { "temperature": 0.5, "maxTokens": 2000 }
+      },
+      "id": "dte-llm-007",
+      "name": "LLM (任務執行)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [900, 820],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $json.output || $json.text || '{}';\nconst taskInfo = $('任務路由分配').item.json;\n\nreturn [{\n  json: {\n    task_id: taskInfo.task_id,\n    assignee: taskInfo.assignee,\n    employee: taskInfo.employee,\n    status: 'completed',\n    result: result,\n    completed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "dte-collect-008",
+      "name": "收集執行結果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $env.NOTION_TASKS_DB_ID }}",
+        "title": "={{ $json.task_id + ' — ' + $json.employee.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "狀態|select", "selectValue": "已完成" },
+            { "key": "負責人|select", "selectValue": "={{ $json.employee.name }}" },
+            { "key": "完成時間|date", "date": "={{ $json.completed_at }}" }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            { "type": "heading_2", "textContent": "執行結果" },
+            { "type": "paragraph", "textContent": "={{ $json.result }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dte-notion-009",
+      "name": "記錄到Notion任務庫",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1340, 300],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ task_id: $json.task_id, status: 'completed', employee: $json.employee, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "dte-respond-010",
+      "name": "回應任務完成",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "接收任務指令": {
+      "main": [[{ "node": "任務路由分配", "type": "main", "index": 0 }]]
+    },
+    "任務路由分配": {
+      "main": [[{ "node": "任務分流", "type": "main", "index": 0 }]]
+    },
+    "任務分流": {
+      "數據分析": [{ "node": "數據分析Agent執行", "type": "main", "index": 0 }],
+      "成交策略": [{ "node": "成交策略Agent執行", "type": "main", "index": 0 }],
+      "知識引擎": [{ "node": "知識引擎Agent執行", "type": "main", "index": 0 }]
+    },
+    "數據分析Agent執行": {
+      "main": [[{ "node": "收集執行結果", "type": "main", "index": 0 }]]
+    },
+    "成交策略Agent執行": {
+      "main": [[{ "node": "收集執行結果", "type": "main", "index": 0 }]]
+    },
+    "知識引擎Agent執行": {
+      "main": [[{ "node": "收集執行結果", "type": "main", "index": 0 }]]
+    },
+    "收集執行結果": {
+      "main": [
+        [
+          { "node": "記錄到Notion任務庫", "type": "main", "index": 0 },
+          { "node": "回應任務完成", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "LLM (任務執行)": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000006-dte-0000-0000-000000000006",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "06-department-task-execution",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

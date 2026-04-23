@@ -1,0 +1,219 @@
+{
+  "name": "[04] Self_Learning_Loop — AI自主學習閉環",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "self-learning-loop",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "sll-webhook-001",
+      "name": "Webhook觸發",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "spreadsheet",
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "={{ $env.GOOGLE_SPREADSHEET_ID }}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "知識攝取日誌", "mode": "name" },
+        "filtersUI": {},
+        "options": {
+          "returnFirstMatch": false,
+          "where": {
+            "values": [
+              {
+                "lookupColumn": "日期",
+                "lookupValue": "={{ $now.format('YYYY-MM-DD') }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "sll-sheet-002",
+      "name": "讀取今日知識日誌",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Service Account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 彙整今日所有知識\nconst items = $input.all();\nconst knowledge = items.map(i => i.json).filter(i => i.標題);\n\nconst summary = {\n  date: new Date().toISOString().split('T')[0],\n  total_items: knowledge.length,\n  categories: {},\n  items: knowledge,\n  content_for_ai: knowledge.map(k => \n    `來源：${k.來源 || ''}\\n標題：${k.標題 || ''}\\nURL：${k.URL || ''}\\n分類：${k.分類 || ''}`\n  ).join('\\n---\\n')\n};\n\n// 統計各分類數量\nknowledge.forEach(k => {\n  const cat = k.分類 || '未分類';\n  summary.categories[cat] = (summary.categories[cat] || 0) + 1;\n});\n\nreturn [{ json: summary }];"
+      },
+      "id": "sll-aggregate-003",
+      "name": "彙整今日知識",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是AI知識引擎（員工5），負責分析今日攝取的知識並產出學習洞察。\n\n今日攝取的知識如下：\n\n{{ $json.content_for_ai }}\n\n統計：共{{ $json.total_items }}條知識，日期：{{ $json.date }}\n\n請執行以下分析：\n\n1. **TOP 3 最重要洞察**：從今日知識中提取最有價值的3個洞察，說明對業務的影響\n\n2. **市場趨勢識別**：發現了哪些市場趨勢或機會？\n\n3. **AI技術應用機會**：有哪些新技術可以應用到我們的系統？\n\n4. **可執行建議**：基於今日學習，建議總監立即採取的1-3個行動\n\n5. **明日學習重點**：根據今日發現，明天應該重點關注什麼？\n\n輸出格式請使用JSON：\n{\n  \"top_insights\": [{\"title\": \"\", \"content\": \"\", \"business_impact\": \"\", \"priority\": \"high/medium/low\"}],\n  \"market_trends\": [\"\"],\n  \"tech_opportunities\": [\"\"],\n  \"action_items\": [{\"action\": \"\", \"assigned_to\": \"\", \"deadline\": \"\"}],\n  \"tomorrow_focus\": [\"\"]\n}",
+        "options": {}
+      },
+      "id": "sll-agent-004",
+      "name": "AI學習分析Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "sll-llm-005",
+      "name": "GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [900, 500],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析AI輸出\nconst output = $json.output || $json.text || '{}';\nlet parsed = {};\ntry {\n  // 嘗試從輸出中提取JSON\n  const jsonMatch = output.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[0]);\n  } else {\n    parsed = { raw_output: output };\n  }\n} catch(e) {\n  parsed = { raw_output: output, parse_error: e.message };\n}\n\nreturn [{\n  json: {\n    ...parsed,\n    date: new Date().toISOString().split('T')[0],\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "sll-parse-006",
+      "name": "解析AI洞察",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $env.NOTION_INSIGHTS_DB_ID }}",
+        "title": "{{ $json.date }} — AI自主學習洞察報告",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "日期|date",
+              "date": "={{ $json.date }}"
+            },
+            {
+              "key": "類型|select",
+              "selectValue": "每日學習報告"
+            },
+            {
+              "key": "洞察數量|number",
+              "numberValue": "={{ ($json.top_insights || []).length }}"
+            },
+            {
+              "key": "行動項目|number",
+              "numberValue": "={{ ($json.action_items || []).length }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "TOP 洞察"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "={{ JSON.stringify($json.top_insights, null, 2) }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "市場趨勢"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "={{ ($json.market_trends || []).join('\\n') }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "可執行行動"
+            },
+            {
+              "type": "paragraph",
+              "textContent": "={{ JSON.stringify($json.action_items, null, 2) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sll-notion-007",
+      "name": "寫入Notion洞察報告",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1340, 200],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/rag-upsert-structured",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: { title: $json.date + ' AI學習洞察', content: JSON.stringify($json), category: '學習洞察', source: 'self_learning_loop' }, collection: 'long_term_memory', source: 'self_learning' }) }}",
+        "options": {}
+      },
+      "id": "sll-memory-008",
+      "name": "存入長期記憶庫",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'learning_completed', insights: ($json.top_insights || []).length, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "sll-respond-009",
+      "name": "回應完成",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook觸發": {
+      "main": [[{ "node": "讀取今日知識日誌", "type": "main", "index": 0 }]]
+    },
+    "讀取今日知識日誌": {
+      "main": [[{ "node": "彙整今日知識", "type": "main", "index": 0 }]]
+    },
+    "彙整今日知識": {
+      "main": [[{ "node": "AI學習分析Agent", "type": "main", "index": 0 }]]
+    },
+    "AI學習分析Agent": {
+      "main": [[{ "node": "解析AI洞察", "type": "main", "index": 0 }]]
+    },
+    "解析AI洞察": {
+      "main": [
+        [
+          { "node": "寫入Notion洞察報告", "type": "main", "index": 0 },
+          { "node": "存入長期記憶庫", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "寫入Notion洞察報告": {
+      "main": [[{ "node": "回應完成", "type": "main", "index": 0 }]]
+    },
+    "GPT-4o-mini": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000004-sll-0000-0000-000000000004",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "04-self-learning-loop",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

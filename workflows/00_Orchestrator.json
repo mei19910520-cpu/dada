@@ -1,0 +1,200 @@
+{
+  "name": "[00] Orchestrator — AI研發部門總指揮",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "orch-trigger-001",
+      "name": "每日07:00觸發(週一至五)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/knowledge-ingestion",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "triggered_by", "value": "orchestrator" },
+            { "name": "date", "value": "={{ $now.toISO() }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "orch-knowledge-002",
+      "name": "01_知識攝取引擎",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 160]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/self-learning-loop",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "triggered_by", "value": "orchestrator" },
+            { "name": "date", "value": "={{ $now.toISO() }}" }
+          ]
+        },
+        "options": { "timeout": 60000 }
+      },
+      "id": "orch-learning-003",
+      "name": "04_自主學習引擎",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/form-feedback-engine",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "triggered_by", "value": "orchestrator" },
+            { "name": "date", "value": "={{ $now.toISO() }}" }
+          ]
+        },
+        "options": { "timeout": 60000 }
+      },
+      "id": "orch-form-004",
+      "name": "08_表單反饋引擎",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 彙整所有引擎執行結果\nconst results = $input.all();\nconst summary = {\n  orchestrator_run_time: new Date().toISOString(),\n  engines_triggered: [\n    '01_Knowledge_Ingestion',\n    '04_Self_Learning_Loop',\n    '08_Form_Feedback_Engine'\n  ],\n  status: 'completed',\n  next_action: 'daily_briefing'\n};\nreturn [{ json: summary }];"
+      },
+      "id": "orch-aggregate-005",
+      "name": "彙整執行結果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/daily-briefing",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "orch-briefing-006",
+      "name": "觸發09_每日簡報",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "err-check",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "error",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "orch-errorcheck-007",
+      "name": "錯誤檢查",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1020, 160]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "🚨 AI研發部門 Orchestrator 執行錯誤\n\n時間：{{ $now.toISO() }}\n錯誤：{{ $json.error }}\n\n請立即檢查 n8n 控制台",
+        "additionalFields": {}
+      },
+      "id": "orch-errnoti-008",
+      "name": "錯誤Telegram通知",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1280, 100],
+      "credentials": {
+        "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "每日07:00觸發(週一至五)": {
+      "main": [
+        [
+          { "node": "01_知識攝取引擎", "type": "main", "index": 0 },
+          { "node": "04_自主學習引擎", "type": "main", "index": 0 },
+          { "node": "08_表單反饋引擎", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "01_知識攝取引擎": {
+      "main": [[{ "node": "彙整執行結果", "type": "main", "index": 0 }]]
+    },
+    "04_自主學習引擎": {
+      "main": [[{ "node": "彙整執行結果", "type": "main", "index": 0 }]]
+    },
+    "08_表單反饋引擎": {
+      "main": [[{ "node": "彙整執行結果", "type": "main", "index": 0 }]]
+    },
+    "彙整執行結果": {
+      "main": [
+        [
+          { "node": "觸發09_每日簡報", "type": "main", "index": 0 },
+          { "node": "錯誤檢查", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "錯誤檢查": {
+      "main": [
+        [{ "node": "錯誤Telegram通知", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000001-orch-0000-0000-000000000001",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "00-orchestrator",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}

@@ -1,0 +1,137 @@
+{
+  "name": "[05] Long_Term_Memory_Commit — 長期記憶管理",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "long-term-memory",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ltm-webhook-001",
+      "name": "Webhook接收記憶",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\n\n// 決定記憶類型\nconst memoryTypes = {\n  'insight': { collection: 'long_term_memory', priority: 'high' },\n  'market_data': { collection: 'market_trends', priority: 'medium' },\n  'customer': { collection: 'customer_data', priority: 'high' },\n  'product': { collection: 'product_knowledge', priority: 'medium' },\n  'competitor': { collection: 'competitor_intel', priority: 'high' },\n  'learning': { collection: 'long_term_memory', priority: 'low' }\n};\n\nconst type = body.memory_type || 'learning';\nconst config = memoryTypes[type] || memoryTypes['learning'];\n\nreturn [{\n  json: {\n    ...body,\n    _memory_type: type,\n    _collection: config.collection,\n    _priority: config.priority,\n    _committed_at: new Date().toISOString(),\n    _retention_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()\n  }\n}];"
+      },
+      "id": "ltm-classify-002",
+      "name": "分類記憶類型",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是長期記憶壓縮引擎。任務：將以下記憶內容壓縮成結構化的長期記憶格式。\n\n原始內容：\n{{ JSON.stringify($json) }}\n\n輸出格式（JSON）：\n{\n  \"summary\": \"50字以內的核心摘要\",\n  \"key_facts\": [\"事實1\", \"事實2\", \"事實3\"],\n  \"actionable_insights\": [\"洞察1\", \"洞察2\"],\n  \"related_topics\": [\"主題1\", \"主題2\"],\n  \"importance_score\": 1-10,\n  \"expiry_date\": \"YYYY-MM-DD\"\n}",
+        "options": {}
+      },
+      "id": "ltm-compress-003",
+      "name": "AI記憶壓縮",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 1000
+        }
+      },
+      "id": "ltm-llm-004",
+      "name": "GPT-4o-mini (記憶壓縮)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [680, 480],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $json.output || $json.text || '{}';\nlet compressed = {};\ntry {\n  const match = output.match(/\\{[\\s\\S]*\\}/);\n  compressed = match ? JSON.parse(match[0]) : { summary: output };\n} catch(e) {\n  compressed = { summary: output.substring(0, 200) };\n}\n\nconst original = $('分類記憶類型').item.json;\nreturn [{\n  json: {\n    ...compressed,\n    _original_type: original._memory_type,\n    _collection: original._collection,\n    _priority: original._priority,\n    _committed_at: original._committed_at,\n    _vector_text: [\n      compressed.summary || '',\n      (compressed.key_facts || []).join(' '),\n      (compressed.actionable_insights || []).join(' '),\n      (compressed.related_topics || []).join(' ')\n    ].join(' ')\n  }\n}];"
+      },
+      "id": "ltm-parse-005",
+      "name": "解析壓縮記憶",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "={{ $json._collection }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "ltm-qdrant-006",
+      "name": "存入Qdrant長期記憶",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "credentials": {
+        "qdrantApi": { "id": "qdrant-cred", "name": "Qdrant API" }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "ltm-embed-007",
+      "name": "Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.1,
+      "position": [1120, 480],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI API" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'memory_committed', collection: $json._collection, importance: $json.importance_score, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "ltm-respond-008",
+      "name": "確認記憶儲存",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook接收記憶": {
+      "main": [[{ "node": "分類記憶類型", "type": "main", "index": 0 }]]
+    },
+    "分類記憶類型": {
+      "main": [[{ "node": "AI記憶壓縮", "type": "main", "index": 0 }]]
+    },
+    "AI記憶壓縮": {
+      "main": [[{ "node": "解析壓縮記憶", "type": "main", "index": 0 }]]
+    },
+    "解析壓縮記憶": {
+      "main": [[{ "node": "存入Qdrant長期記憶", "type": "main", "index": 0 }]]
+    },
+    "存入Qdrant長期記憶": {
+      "main": [[{ "node": "確認記憶儲存", "type": "main", "index": 0 }]]
+    },
+    "GPT-4o-mini (記憶壓縮)": {},
+    "Embeddings": {}
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000005-ltm-0000-0000-000000000005",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "05-long-term-memory",
+  "tags": [{ "name": "AI-RnD-Dept", "id": "tag-ai-rnd" }]
+}
