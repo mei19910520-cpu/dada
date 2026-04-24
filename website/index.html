@@ -170,6 +170,58 @@
         margin: 6px 0 0;
       }
 
+
+
+      .queue-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .queue-form .full {
+        grid-column: 1 / -1;
+      }
+
+      .queue-form label {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 4px;
+        color: var(--ink-soft);
+      }
+
+      .queue-form input,
+      .queue-form textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 10px 12px;
+        font: inherit;
+        color: var(--ink);
+      }
+
+      .queue-form button {
+        border: 1px solid #9d7b63;
+        background: #9d7b63;
+        color: #fff;
+        padding: 10px 18px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .queue-status {
+        margin: 10px 0 0;
+        min-height: 1.8em;
+      }
+
+      .queue-status[data-tone='error'] {
+        color: #a23f3f;
+      }
+
+      .queue-status[data-tone='success'] {
+        color: #3d7b50;
+      }
+
       footer {
         margin: 34px 0 48px;
         padding-top: 16px;
@@ -190,10 +242,15 @@
           grid-template-columns: 1fr;
         }
 
+        .queue-form {
+          grid-template-columns: 1fr;
+        }
+
         .hero-top {
           align-items: flex-start;
           gap: 16px;
         }
+
 
         footer {
           flex-direction: column;
@@ -297,6 +354,38 @@
         </div>
       </section>
 
+
+      <section>
+        <h2 class="title">線上排隊預約（串接 Google）</h2>
+        <p class="sub">填寫後會直接送到 Google Apps Script / Google Sheet 後端。</p>
+        <form id="queue-form" class="queue-form">
+          <div>
+            <label for="name">姓名 *</label>
+            <input id="name" name="name" required />
+          </div>
+          <div>
+            <label for="phone">電話 *</label>
+            <input id="phone" name="phone" required />
+          </div>
+          <div>
+            <label for="lineId">LINE ID</label>
+            <input id="lineId" name="lineId" />
+          </div>
+          <div>
+            <label for="preference">偏好（性別 / 毛色）</label>
+            <input id="preference" name="preference" />
+          </div>
+          <div class="full">
+            <label for="note">補充需求</label>
+            <textarea id="note" name="note" rows="4"></textarea>
+          </div>
+          <div class="full">
+            <button type="submit">送出排隊申請</button>
+            <p id="queue-status" class="queue-status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
       <section class="qa">
         <h2 class="title">Q . A 問答</h2>
         <article class="qa-item">
@@ -318,5 +407,7 @@
       <div>命中註定的相遇・無可取代的唯一<br />A destined encounter・An irreplaceable bond</div>
       <div>MAUYUAN 貓苑｜Beyond Breeding<br />Breed・Care・Connection</div>
     </footer>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>
