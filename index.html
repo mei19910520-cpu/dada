@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAUYUAN 貓苑 — 命定之緣</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&family=Noto+Serif+TC:wght@300;400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#hero" class="nav-logo">
+        <span class="logo-text">MAUYUAN</span>
+        <span class="logo-sub">貓苑</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#hero">首頁</a></li>
+        <li><a href="#philosophy">品牌理念</a></li>
+        <li><a href="#process">購貓流程</a></li>
+        <li><a href="#health">健康保障</a></li>
+        <li><a href="#contact" class="nav-cta">預約諮詢</a></li>
+      </ul>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===== MOBILE MENU ===== -->
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="#hero" onclick="closeMobile()">首頁</a></li>
+      <li><a href="#philosophy" onclick="closeMobile()">品牌理念</a></li>
+      <li><a href="#process" onclick="closeMobile()">購貓流程</a></li>
+      <li><a href="#health" onclick="closeMobile()">健康保障</a></li>
+      <li><a href="#contact" onclick="closeMobile()">預約諮詢</a></li>
+    </ul>
+  </div>
+
+  <!-- ===== SECTION 1 · HERO ===== -->
+  <section id="hero" class="hero">
+    <div class="hero-bg-arch">
+      <div class="arch-shape">
+        <div class="arch-inner">
+          <!-- Decorative cat silhouette SVG -->
+          <svg class="cat-silhouette" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Body -->
+            <ellipse cx="100" cy="180" rx="55" ry="65" fill="rgba(180,155,120,0.18)"/>
+            <!-- Head -->
+            <ellipse cx="100" cy="108" rx="42" ry="38" fill="rgba(180,155,120,0.18)"/>
+            <!-- Left ear -->
+            <polygon points="65,82 55,52 88,75" fill="rgba(180,155,120,0.22)"/>
+            <!-- Right ear -->
+            <polygon points="135,82 145,52 112,75" fill="rgba(180,155,120,0.22)"/>
+            <!-- Left inner ear -->
+            <polygon points="67,80 60,58 84,74" fill="rgba(210,185,150,0.25)"/>
+            <!-- Right inner ear -->
+            <polygon points="133,80 140,58 116,74" fill="rgba(210,185,150,0.25)"/>
+            <!-- Eyes -->
+            <ellipse cx="87" cy="108" rx="7" ry="5" fill="rgba(160,130,90,0.4)"/>
+            <ellipse cx="113" cy="108" rx="7" ry="5" fill="rgba(160,130,90,0.4)"/>
+            <!-- Nose -->
+            <polygon points="100,118 96,124 104,124" fill="rgba(160,130,90,0.3)"/>
+            <!-- Tail -->
+            <path d="M145,230 Q185,200 170,160 Q160,145 155,165" stroke="rgba(180,155,120,0.25)" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <!-- Paws -->
+            <ellipse cx="80" cy="240" rx="14" ry="8" fill="rgba(180,155,120,0.15)"/>
+            <ellipse cx="120" cy="240" rx="14" ry="8" fill="rgba(180,155,120,0.15)"/>
+            <!-- Whiskers left -->
+            <line x1="50" y1="116" x2="83" y2="120" stroke="rgba(180,155,120,0.3)" stroke-width="1.2"/>
+            <line x1="50" y1="122" x2="83" y2="123" stroke="rgba(180,155,120,0.3)" stroke-width="1.2"/>
+            <line x1="50" y1="128" x2="83" y2="126" stroke="rgba(180,155,120,0.3)" stroke-width="1.2"/>
+            <!-- Whiskers right -->
+            <line x1="150" y1="116" x2="117" y2="120" stroke="rgba(180,155,120,0.3)" stroke-width="1.2"/>
+            <line x1="150" y1="122" x2="117" y2="123" stroke="rgba(180,155,120,0.3)" stroke-width="1.2"/>
+            <line x1="150" y1="128" x2="117" y2="126" stroke="rgba(180,155,120,0.3)" stroke-width="1.2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow">— Since 2018 —</p>
+      <h1 class="hero-title">
+        A destined encounter.<br />
+        <em>An irreplaceable bond.</em>
+      </h1>
+      <p class="hero-subtitle">命定之緣，無可替代的羈絆</p>
+      <p class="hero-desc">每一隻離開貓苑的貓咪，都帶著我們對生命的承諾。<br />科學飼養 · 無籠環境 · 基因篩查</p>
+      <div class="hero-actions">
+        <a href="#philosophy" class="btn btn-primary">Explore MAUYUAN</a>
+        <a href="#process" class="btn btn-ghost">購貓指南</a>
+      </div>
+    </div>
+
+    <div class="hero-scroll-hint">
+      <span>探索更多</span>
+      <div class="scroll-line"></div>
+    </div>
+
+    <!-- Floating decorative elements -->
+    <div class="deco-circle deco-circle-1"></div>
+    <div class="deco-circle deco-circle-2"></div>
+    <div class="deco-paw deco-paw-1">✦</div>
+    <div class="deco-paw deco-paw-2">✦</div>
+  </section>
+
+  <!-- ===== STATS BAR ===== -->
+  <div class="stats-bar">
+    <div class="stats-container">
+      <div class="stat-item">
+        <span class="stat-number">7+</span>
+        <span class="stat-label">年飼育經驗</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number">200+</span>
+        <span class="stat-label">幸福家庭</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number">100%</span>
+        <span class="stat-label">基因檢測</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number">0</span>
+        <span class="stat-label">籠養紀錄</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 2 · PHILOSOPHY ===== -->
+  <section id="philosophy" class="philosophy">
+    <div class="section-label">— Our Philosophy —</div>
+
+    <div class="philosophy-header">
+      <h2 class="section-title">Beyond Breeding</h2>
+      <p class="section-subtitle">超越繁殖，用科學與溫度守護每一個生命</p>
+    </div>
+
+    <div class="philosophy-layout">
+      <!-- Left: Cat image area -->
+      <div class="philosophy-visual">
+        <div class="arch-frame">
+          <div class="arch-frame-inner">
+            <div class="cat-portrait">
+              <!-- Decorative cat illustration -->
+              <svg viewBox="0 0 320 400" fill="none" xmlns="http://www.w3.org/2000/svg" class="cat-portrait-svg">
+                <!-- Background wash -->
+                <rect width="320" height="400" fill="url(#bgGrad)"/>
+                <defs>
+                  <radialGradient id="bgGrad" cx="50%" cy="60%" r="70%">
+                    <stop offset="0%" stop-color="#f5ede0"/>
+                    <stop offset="100%" stop-color="#ede0cc"/>
+                  </radialGradient>
+                  <radialGradient id="furGrad" cx="50%" cy="40%" r="60%">
+                    <stop offset="0%" stop-color="#d4b896"/>
+                    <stop offset="60%" stop-color="#b8956a"/>
+                    <stop offset="100%" stop-color="#9a7a52"/>
+                  </radialGradient>
+                </defs>
+                <!-- Cat body -->
+                <ellipse cx="160" cy="300" rx="90" ry="80" fill="url(#furGrad)" opacity="0.85"/>
+                <!-- Cat head -->
+                <ellipse cx="160" cy="185" rx="72" ry="68" fill="url(#furGrad)" opacity="0.9"/>
+                <!-- Left ear -->
+                <polygon points="100,155 82,100 140,148" fill="#b8956a"/>
+                <!-- Right ear -->
+                <polygon points="220,155 238,100 180,148" fill="#b8956a"/>
+                <!-- Inner left ear -->
+                <polygon points="103,152 88,110 134,147" fill="#e8c9aa" opacity="0.6"/>
+                <!-- Inner right ear -->
+                <polygon points="217,152 232,110 186,147" fill="#e8c9aa" opacity="0.6"/>
+                <!-- Face details -->
+                <ellipse cx="140" cy="182" rx="13" ry="10" fill="#3d2b1a" opacity="0.8"/>
+                <ellipse cx="180" cy="182" rx="13" ry="10" fill="#3d2b1a" opacity="0.8"/>
+                <!-- Eye shine -->
+                <circle cx="144" cy="179" r="3" fill="white" opacity="0.7"/>
+                <circle cx="184" cy="179" r="3" fill="white" opacity="0.7"/>
+                <!-- Nose -->
+                <polygon points="160,200 155,207 165,207" fill="#c07070" opacity="0.7"/>
+                <!-- Mouth -->
+                <path d="M155,207 Q160,214 165,207" stroke="#8a5a5a" stroke-width="1.5" fill="none" opacity="0.5"/>
+                <!-- Whiskers -->
+                <line x1="100" y1="196" x2="148" y2="202" stroke="#d4b896" stroke-width="1.5" opacity="0.8"/>
+                <line x1="100" y1="204" x2="148" y2="204" stroke="#d4b896" stroke-width="1.5" opacity="0.8"/>
+                <line x1="172" y1="202" x2="220" y2="196" stroke="#d4b896" stroke-width="1.5" opacity="0.8"/>
+                <line x1="172" y1="204" x2="220" y2="204" stroke="#d4b896" stroke-width="1.5" opacity="0.8"/>
+                <!-- Tail -->
+                <path d="M245,370 Q300,320 280,260 Q270,230 260,260" stroke="#b8956a" stroke-width="16" fill="none" stroke-linecap="round" opacity="0.8"/>
+                <!-- Front paws -->
+                <ellipse cx="130" cy="375" rx="22" ry="14" fill="#c4a070" opacity="0.8"/>
+                <ellipse cx="190" cy="375" rx="22" ry="14" fill="#c4a070" opacity="0.8"/>
+                <!-- Chest fluff -->
+                <ellipse cx="160" cy="248" rx="30" ry="22" fill="#e8c9aa" opacity="0.4"/>
+                <!-- Decorative dots (health marks) -->
+                <circle cx="48" cy="48" r="3" fill="#b8956a" opacity="0.3"/>
+                <circle cx="272" cy="48" r="3" fill="#b8956a" opacity="0.3"/>
+                <circle cx="48" cy="352" r="3" fill="#b8956a" opacity="0.3"/>
+                <circle cx="272" cy="352" r="3" fill="#b8956a" opacity="0.3"/>
+              </svg>
+            </div>
+          </div>
+          <div class="arch-caption">英國短毛貓 · British Shorthair</div>
+        </div>
+      </div>
+
+      <!-- Right: Philosophy content -->
+      <div class="philosophy-content">
+        <div class="philosophy-quote">
+          <p>"每一隻貓咪，都是我們用科學與愛共同創作的生命。"</p>
+        </div>
+
+        <div class="philosophy-text">
+          <p>MAUYUAN 貓苑成立於 2018 年，以「科學養育、全心守護」為核心理念。我們相信，一隻健康快樂的貓咪，是給每個家庭最真誠的禮物。</p>
+        </div>
+
+        <div class="philosophy-pillars">
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M16 24l6 6 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="pillar-text">
+              <h3>Genetic Screening</h3>
+              <p class="pillar-ch">全面基因篩查</p>
+              <p>PKD · HCM · FIV 全項目基因檢測，每一隻親貓均持有國際認證報告。</p>
+            </div>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 48 48" fill="none">
+                <rect x="8" y="14" width="32" height="26" rx="4" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M16 8v6M32 8v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M8 22h32" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="18" cy="32" r="2" fill="currentColor"/>
+                <circle cx="24" cy="32" r="2" fill="currentColor"/>
+                <circle cx="30" cy="32" r="2" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="pillar-text">
+              <h3>Cage-Free Commitment</h3>
+              <p class="pillar-ch">無籠承諾</p>
+              <p>貓苑內所有成員均採自由放養，與家人共同生活，社會化程度高。</p>
+            </div>
+          </div>
+
+          <div class="pillar-card">
+            <div class="pillar-icon">
+              <svg viewBox="0 0 48 48" fill="none">
+                <path d="M24 8C24 8 12 14 12 26c0 6.627 5.373 12 12 12s12-5.373 12-12C36 14 24 8 24 8z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M20 26l3 3 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="pillar-text">
+              <h3>Lifetime Support</h3>
+              <p class="pillar-ch">終身諮詢陪伴</p>
+              <p>貓咪回家後，我們仍是您最可靠的後盾，提供終身飼育諮詢服務。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 3 · PROCESS ===== -->
+  <section id="process" class="process">
+    <div class="process-bg-deco"></div>
+
+    <div class="section-label">— Buying Guide —</div>
+    <div class="process-header">
+      <h2 class="section-title">透明 · 有序 · 安心</h2>
+      <p class="section-subtitle">我們設計了清晰的購貓流程，讓每個步驟都充滿確定感</p>
+    </div>
+
+    <!-- Mascot illustration -->
+    <div class="mascot-container">
+      <div class="mascot">
+        <svg viewBox="0 0 160 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="mascot-svg">
+          <!-- Body -->
+          <ellipse cx="80" cy="148" rx="46" ry="50" fill="#d4a574" opacity="0.9"/>
+          <!-- Head -->
+          <ellipse cx="80" cy="90" rx="38" ry="35" fill="#d4a574" opacity="0.9"/>
+          <!-- Ears -->
+          <polygon points="50,68 40,40 68,64" fill="#c4956a"/>
+          <polygon points="110,68 120,40 92,64" fill="#c4956a"/>
+          <polygon points="52,66 44,46 66,63" fill="#f0c8a0" opacity="0.5"/>
+          <polygon points="108,66 116,46 94,63" fill="#f0c8a0" opacity="0.5"/>
+          <!-- Eyes -->
+          <ellipse cx="68" cy="88" rx="8" ry="7" fill="#2d1a0a" opacity="0.85"/>
+          <ellipse cx="92" cy="88" rx="8" ry="7" fill="#2d1a0a" opacity="0.85"/>
+          <circle cx="71" cy="86" r="2.5" fill="white" opacity="0.8"/>
+          <circle cx="95" cy="86" r="2.5" fill="white" opacity="0.8"/>
+          <!-- Nose & mouth -->
+          <polygon points="80,98 76,104 84,104" fill="#c07070" opacity="0.8"/>
+          <path d="M76,104 Q80,109 84,104" stroke="#8a5a5a" stroke-width="1.2" fill="none"/>
+          <!-- Cheek blush -->
+          <ellipse cx="57" cy="97" rx="9" ry="6" fill="#e8a0a0" opacity="0.25"/>
+          <ellipse cx="103" cy="97" rx="9" ry="6" fill="#e8a0a0" opacity="0.25"/>
+          <!-- Whiskers -->
+          <line x1="30" y1="94" x2="64" y2="100" stroke="#c4956a" stroke-width="1.2" opacity="0.6"/>
+          <line x1="30" y1="101" x2="64" y2="101" stroke="#c4956a" stroke-width="1.2" opacity="0.6"/>
+          <line x1="96" y1="100" x2="130" y2="94" stroke="#c4956a" stroke-width="1.2" opacity="0.6"/>
+          <line x1="96" y1="101" x2="130" y2="101" stroke="#c4956a" stroke-width="1.2" opacity="0.6"/>
+          <!-- Notebook -->
+          <rect x="46" y="148" width="58" height="44" rx="4" fill="#f5ede0" stroke="#c4956a" stroke-width="1.5"/>
+          <rect x="46" y="148" width="10" height="44" rx="2" fill="#c4956a" opacity="0.5"/>
+          <line x1="60" y1="160" x2="96" y2="160" stroke="#c4956a" stroke-width="1.5" opacity="0.6"/>
+          <line x1="60" y1="168" x2="96" y2="168" stroke="#c4956a" stroke-width="1.5" opacity="0.6"/>
+          <line x1="60" y1="176" x2="80" y2="176" stroke="#c4956a" stroke-width="1.5" opacity="0.6"/>
+          <!-- Quill/pen -->
+          <line x1="95" y1="135" x2="108" y2="152" stroke="#8a6a40" stroke-width="2" stroke-linecap="round"/>
+          <path d="M95,135 Q88,122 100,118 Q108,122 95,135" fill="#d4c0a0" stroke="#8a6a40" stroke-width="1"/>
+          <!-- Pointing arm -->
+          <path d="M100,148 Q120,138 128,128" stroke="#d4a574" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <!-- Paw pointer -->
+          <circle cx="130" cy="125" r="8" fill="#d4a574"/>
+          <circle cx="125" cy="119" r="4" fill="#d4a574"/>
+          <!-- Star accents -->
+          <text x="136" y="106" font-size="10" fill="#c4956a" opacity="0.7">✦</text>
+          <text x="20" y="70" font-size="8" fill="#c4956a" opacity="0.5">✦</text>
+        </svg>
+        <p class="mascot-speech">跟著我，一步步帶你找到命定的牠！</p>
+      </div>
+    </div>
+
+    <!-- Process timeline -->
+    <div class="process-timeline">
+      <div class="timeline-line"></div>
+
+      <div class="process-step" data-step="01">
+        <div class="step-connector">
+          <div class="step-dot"></div>
+        </div>
+        <div class="step-card step-card-right">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <h3>Interest Form</h3>
+            <p class="step-ch">填寫興趣表單</p>
+            <p>填寫基本資訊，告訴我們您理想中貓咪的品種、性別、毛色與家庭環境。這讓我們能為您推薦最合適的選擇。</p>
+            <div class="step-tags">
+              <span class="tag">線上表單</span>
+              <span class="tag">5分鐘完成</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="process-step" data-step="02">
+        <div class="step-connector">
+          <div class="step-dot"></div>
+        </div>
+        <div class="step-card step-card-left">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <h3>Live Selection</h3>
+            <p class="step-ch">視訊 / 現場挑選</p>
+            <p>安排視訊或親訪預約，在輕鬆的環境下與幼貓互動。我們鼓勵您提問，確保雙方都做好準備。</p>
+            <div class="step-tags">
+              <span class="tag">視訊可選</span>
+              <span class="tag">親訪歡迎</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="process-step" data-step="03">
+        <div class="step-connector">
+          <div class="step-dot"></div>
+        </div>
+        <div class="step-card step-card-right">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <h3>Waitlist Reservation</h3>
+            <p class="step-ch">候補等候</p>
+            <p>若目前無合適幼貓，可加入候補名單。我們定期更新名單狀態，讓您隨時掌握最新進度，絕不讓您空等。</p>
+            <div class="step-tags">
+              <span class="tag">透明排隊</span>
+              <span class="tag">定期更新</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="process-step" data-step="04">
+        <div class="step-connector">
+          <div class="step-dot"></div>
+        </div>
+        <div class="step-card step-card-left">
+          <div class="step-number">04</div>
+          <div class="step-content">
+            <h3>Official Reservation</h3>
+            <p class="step-ch">正式預訂</p>
+            <p>確認心儀的幼貓後，簽署飼主協議、繳交預訂訂金，貓咪即正式進入出貓準備流程。</p>
+            <div class="step-tags">
+              <span class="tag">合約保障</span>
+              <span class="tag">訂金制度</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps 5-10 condensed in cards row -->
+      <div class="process-step-row">
+        <div class="mini-step-card">
+          <span class="mini-number">05</span>
+          <h4>Health Pre-Check</h4>
+          <p>出貓前健康檢查 + 驅蟲 + 基礎疫苗</p>
+        </div>
+        <div class="mini-step-card">
+          <span class="mini-number">06</span>
+          <h4>Documentation</h4>
+          <p>基因報告、健康手冊、飼育指南一一交付</p>
+        </div>
+        <div class="mini-step-card">
+          <span class="mini-number">07</span>
+          <h4>Heritage Package</h4>
+          <p>精品貓苑紀念禮盒，完整傳承飼育記憶</p>
+        </div>
+        <div class="mini-step-card">
+          <span class="mini-number">08</span>
+          <h4>Homecoming</h4>
+          <p>安全交接，專人指導回家第一週適應</p>
+        </div>
+        <div class="mini-step-card">
+          <span class="mini-number">09</span>
+          <h4>Follow-up</h4>
+          <p>回家後第 1、7、30 天主動關懷追蹤</p>
+        </div>
+        <div class="mini-step-card">
+          <span class="mini-number">10</span>
+          <h4>Lifetime Bond</h4>
+          <p>加入 MAUYUAN 家庭群組，終身守護開始</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 4 · HEALTH ===== -->
+  <section id="health" class="health">
+    <div class="section-label">— Health & Guarantee —</div>
+    <div class="health-header">
+      <h2 class="section-title">數據的底線</h2>
+      <p class="section-subtitle">用可驗證的科學數據，守護每一個生命的起點</p>
+    </div>
+
+    <div class="health-layout">
+      <!-- Left: Dashboard mockup -->
+      <div class="health-dashboard">
+        <div class="dashboard-card">
+          <div class="dashboard-header">
+            <div class="dashboard-dot green"></div>
+            <div class="dashboard-dot yellow"></div>
+            <div class="dashboard-dot red"></div>
+            <span class="dashboard-title">MAUYUAN Health Report</span>
+          </div>
+          <div class="dashboard-body">
+            <div class="report-section">
+              <p class="report-label">基因篩查結果 · Genetic Screening</p>
+              <div class="report-items">
+                <div class="report-item">
+                  <span class="report-gene">PKD1</span>
+                  <div class="report-bar">
+                    <div class="report-fill" style="width:100%"></div>
+                  </div>
+                  <span class="report-status pass">CLEAR</span>
+                </div>
+                <div class="report-item">
+                  <span class="report-gene">HCM</span>
+                  <div class="report-bar">
+                    <div class="report-fill" style="width:100%"></div>
+                  </div>
+                  <span class="report-status pass">CLEAR</span>
+                </div>
+                <div class="report-item">
+                  <span class="report-gene">FIV/FeLV</span>
+                  <div class="report-bar">
+                    <div class="report-fill" style="width:100%"></div>
+                  </div>
+                  <span class="report-status pass">NEGATIVE</span>
+                </div>
+                <div class="report-item">
+                  <span class="report-gene">PRA-b</span>
+                  <div class="report-bar">
+                    <div class="report-fill" style="width:100%"></div>
+                  </div>
+                  <span class="report-status pass">CLEAR</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="report-divider"></div>
+
+            <div class="report-section">
+              <p class="report-label">疫苗接種記錄 · Vaccination</p>
+              <div class="vaccine-grid">
+                <div class="vaccine-item"><span class="vcheck">✓</span> 三聯疫苗 × 2</div>
+                <div class="vaccine-item"><span class="vcheck">✓</span> 狂犬疫苗</div>
+                <div class="vaccine-item"><span class="vcheck">✓</span> 體內驅蟲</div>
+                <div class="vaccine-item"><span class="vcheck">✓</span> 體外驅蟲</div>
+              </div>
+            </div>
+
+            <div class="report-divider"></div>
+
+            <div class="report-stamp">
+              <div class="stamp-icon">
+                <svg viewBox="0 0 40 40" fill="none">
+                  <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M12 20l6 6 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <p class="stamp-title">MAUYUAN Certified</p>
+                <p class="stamp-sub">獸醫師認證 · 2025</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Guarantee cards -->
+      <div class="health-guarantees">
+        <h3 class="guarantee-title">我們的保障承諾</h3>
+
+        <div class="guarantee-card">
+          <div class="guarantee-num">01</div>
+          <div class="guarantee-content">
+            <h4>健康保障期</h4>
+            <p>幼貓出貓後 <strong>72 小時內</strong>，若獸醫診斷發現隱性健康問題，我們提供退款或換貓保障。</p>
+          </div>
+        </div>
+
+        <div class="guarantee-card">
+          <div class="guarantee-num">02</div>
+          <div class="guarantee-content">
+            <h4>基因保障</h4>
+            <p>所有在貓苑出生的幼貓，其親貓均已完成 <strong>完整基因組篩查</strong>，報告公開透明可查驗。</p>
+          </div>
+        </div>
+
+        <div class="guarantee-card">
+          <div class="guarantee-num">03</div>
+          <div class="guarantee-content">
+            <h4>Heritage Collection 禮盒</h4>
+            <p>每隻幼貓附帶精品禮盒，內含：健康手冊、基因報告、飼育指南、親貓照片、專屬紀念卡。</p>
+          </div>
+        </div>
+
+        <div class="guarantee-card">
+          <div class="guarantee-num">04</div>
+          <div class="guarantee-content">
+            <h4>終身後援</h4>
+            <p>加入 MAUYUAN 家庭社群，享有 <strong>終身免費飼育諮詢</strong>，專屬獸醫師在線指導。</p>
+          </div>
+        </div>
+
+        <!-- Heritage package visual -->
+        <div class="heritage-box">
+          <div class="heritage-box-visual">
+            <div class="box-lid"></div>
+            <div class="box-body">
+              <span class="box-logo">MAUYUAN</span>
+              <span class="box-sub">Heritage Collection</span>
+            </div>
+          </div>
+          <p class="heritage-caption">每一份，都是愛的起點</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 5 · CONTACT ===== -->
+  <section id="contact" class="contact">
+    <div class="contact-arch-bg">
+      <div class="contact-arch"></div>
+    </div>
+
+    <div class="contact-content">
+      <div class="section-label">— Begin Your Journey —</div>
+      <h2 class="contact-title">準備好迎接<br /><em>命定的相遇</em> 了嗎？</h2>
+      <p class="contact-desc">填寫下方表單，讓我們為您尋找最合適的夥伴。<br />每一份詢問，我們都認真對待。</p>
+
+      <form class="contact-form" id="contactForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">您的姓名</label>
+            <input type="text" id="name" name="name" placeholder="王小明" required />
+          </div>
+          <div class="form-group">
+            <label for="phone">聯絡電話</label>
+            <input type="tel" id="phone" name="phone" placeholder="0912-345-678" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="breed">感興趣的品種</label>
+            <select id="breed" name="breed">
+              <option value="">請選擇...</option>
+              <option>英國短毛貓 British Shorthair</option>
+              <option>英國長毛貓 British Longhair</option>
+              <option>蘇格蘭折耳貓 Scottish Fold</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="timeline">預計時間</label>
+            <select id="timeline" name="timeline">
+              <option value="">請選擇...</option>
+              <option>1 個月內</option>
+              <option>1–3 個月</option>
+              <option>3 個月以上</option>
+              <option>只是先了解</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group form-group-full">
+          <label for="message">想對我們說的話</label>
+          <textarea id="message" name="message" rows="4" placeholder="例如：家中已有其他寵物、希望的毛色或性別..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-submit">
+          送出詢問 · Send Inquiry
+        </button>
+      </form>
+
+      <div class="contact-info">
+        <div class="info-item">
+          <span class="info-icon">✦</span>
+          <span>Instagram: @mauyuan_cattery</span>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">✦</span>
+          <span>LINE ID: @mauyuan</span>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">✦</span>
+          <span>台灣 · 預約參觀歡迎聯繫</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-logo">MAUYUAN</span>
+        <span class="footer-logo-ch">貓苑</span>
+        <p>每一隻離開貓苑的貓咪，<br />都帶著我們對生命的承諾。</p>
+      </div>
+      <div class="footer-links">
+        <a href="#hero">首頁</a>
+        <a href="#philosophy">品牌理念</a>
+        <a href="#process">購貓流程</a>
+        <a href="#health">健康保障</a>
+        <a href="#contact">預約諮詢</a>
+      </div>
+      <div class="footer-copy">
+        <p>© 2025 MAUYUAN 貓苑. All rights reserved.</p>
+        <p>以愛為本 · 以科學為徑</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
