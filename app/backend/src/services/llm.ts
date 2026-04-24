@@ -18,8 +18,21 @@ export interface StreamOptions {
   onError: (err: Error) => void
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+// Lazy init — avoid crash when API keys are missing
+let _openai: OpenAI | null = null
+let _anthropic: Anthropic | null = null
+
+function getOpenAI(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY 未設定')
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  return _openai
+}
+
+function getAnthropic(): Anthropic {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY 未設定')
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return _anthropic
+}
 
 export async function streamChat(opts: StreamOptions): Promise<void> {
   const { provider, model, messages, systemPrompt, onToken, onDone, onError } = opts
@@ -48,7 +61,7 @@ async function streamOpenAI({
     ? [{ role: 'system', content: systemPrompt }, ...messages]
     : messages
 
-  const stream = await openai.chat.completions.create({
+  const stream = await getOpenAI().chat.completions.create({
     model: model || 'gpt-4o-mini',
     messages: msgs,
     stream: true,
@@ -74,7 +87,7 @@ async function streamAnthropic({
     .filter((m) => m.role !== 'system')
     .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
-  const stream = anthropic.messages.stream({
+  const stream = getAnthropic().messages.stream({
     model: model || 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: systemPrompt
