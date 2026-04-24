@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MAUYUAN｜British Shorthair Cattery</title>
+    <style>
+      :root {
+        --bg: #f5f2ef;
+        --paper: #f8f5f2;
+        --ink: #6f4d38;
+        --ink-soft: #8d6d58;
+        --line: #d9c9bc;
+        --accent: #b6957b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Serif TC", "PingFang TC", "Microsoft JhengHei", serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.8;
+        letter-spacing: 0.02em;
+      }
+
+      .container {
+        width: min(1120px, 92vw);
+        margin: 0 auto;
+      }
+
+      .hero {
+        padding: 42px 0 20px;
+      }
+
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .tagline {
+        font-size: 21px;
+        color: #9a8f86;
+        border-left: 6px solid var(--ink);
+        padding-left: 16px;
+        line-height: 1.4;
+      }
+
+      .seal {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 2px solid #c6ad94;
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        background: radial-gradient(circle at 30% 30%, #fdf8f3, #e5d4c4);
+        color: #7d5a45;
+      }
+
+      h1 {
+        margin: 12px 0 20px;
+        font-size: clamp(52px, 7vw, 96px);
+        letter-spacing: 0.06em;
+        font-weight: 500;
+      }
+
+      h1 span {
+        color: #ccb8a8;
+      }
+
+      .divider {
+        border: none;
+        border-top: 2px solid var(--line);
+        margin: 20px 0 36px;
+      }
+
+      section {
+        background: var(--paper);
+        border: 1px solid #e8ddd4;
+        margin-bottom: 28px;
+        padding: 30px;
+      }
+
+      .title {
+        margin: 0 0 20px;
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1.2;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 20px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+        margin-top: 22px;
+      }
+
+      .cell {
+        padding: 24px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        min-height: 180px;
+      }
+
+      .cell h3 {
+        margin: 0 0 10px;
+        font-size: 34px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 190px 1fr;
+        gap: 20px;
+        padding: 20px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .step:first-of-type {
+        border-top: none;
+      }
+
+      .step-title {
+        font-size: 42px;
+        margin: 0;
+        color: var(--accent);
+      }
+
+      .step small {
+        display: inline-block;
+        background: #efe6df;
+        border-radius: 999px;
+        padding: 4px 14px;
+        margin-top: 8px;
+      }
+
+      .plan ul,
+      .qa ul {
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+
+      .qa-item {
+        border-top: 1px solid var(--line);
+        padding: 14px 0;
+      }
+
+      .qa-item:first-child {
+        border-top: none;
+      }
+
+      .q {
+        margin: 0;
+        font-weight: 700;
+        font-size: 23px;
+      }
+
+      .a {
+        margin: 6px 0 0;
+      }
+
+
+
+      .queue-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .queue-form .full {
+        grid-column: 1 / -1;
+      }
+
+      .queue-form label {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 4px;
+        color: var(--ink-soft);
+      }
+
+      .queue-form input,
+      .queue-form textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 10px 12px;
+        font: inherit;
+        color: var(--ink);
+      }
+
+      .queue-form button {
+        border: 1px solid #9d7b63;
+        background: #9d7b63;
+        color: #fff;
+        padding: 10px 18px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .queue-status {
+        margin: 10px 0 0;
+        min-height: 1.8em;
+      }
+
+      .queue-status[data-tone='error'] {
+        color: #a23f3f;
+      }
+
+      .queue-status[data-tone='success'] {
+        color: #3d7b50;
+      }
+
+      footer {
+        margin: 34px 0 48px;
+        padding-top: 16px;
+        border-top: 5px solid #87654d;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: #7b624f;
+        font-size: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+
+        .step {
+          grid-template-columns: 1fr;
+        }
+
+        .queue-form {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-top {
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+
+        footer {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero container">
+      <div class="hero-top">
+        <p class="tagline">
+          British Longhair / Shorthair Cat<br />NY BY AY CY PY OY
+        </p>
+        <div class="seal">MAUYUAN<br />Cattery</div>
+      </div>
+      <h1>BRITISH SH<span>🐾</span>RTHAIR</h1>
+      <hr class="divider" />
+    </header>
+
+    <main class="container">
+      <section>
+        <h2 class="title">品牌理念</h2>
+        <p class="sub">一場命中註定的相遇，一段無可取代的陪伴。</p>
+        <div class="grid-2">
+          <article class="cell">
+            <h3>無籠照護</h3>
+            <p>
+              我們將「無籠照護」作為日常原則，維持分區與充足活動空間，讓幼貓在安全且穩定的環境中探索與社會化。
+            </p>
+          </article>
+          <article class="cell">
+            <h3>道德培育</h3>
+            <p>
+              培育不只追求數量，更重視生命品質。透過健康檢查、行為觀察與飼養紀錄，持續提供可追溯且負責任的照護。
+            </p>
+          </article>
+          <article class="cell">
+            <h3>基因檢測</h3>
+            <p>
+              以基因與血統資料作為科學基礎，逐步建立健康檔案，降低遺傳風險並確保後續管理透明。
+            </p>
+          </article>
+          <article class="cell">
+            <h3>陪伴管理</h3>
+            <p>
+              交付後仍提供照護建議與健康顧問，協助家長記錄成長與飲食行為，讓陪伴更安心、長期且完整。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="title">購買流程（排隊 / 現貓挑選）</h2>
+        <div class="step">
+          <div>
+            <p class="step-title">01 登記排隊</p>
+            <small>填寫意向表單並支付排隊定金</small>
+          </div>
+          <p>依登記順序建立候補名單，排隊定金永久有效；如有指定臉型、性別或毛色需求，可於表單備註。</p>
+        </div>
+        <div class="step">
+          <div>
+            <p class="step-title">02 等待通知</p>
+            <small>依定金繳交時間排序</small>
+          </div>
+          <p>收到通知後可查看可挑選幼貓資訊（健康、性格、成長狀態），確認眼緣後安排現場互動。</p>
+        </div>
+        <div class="step">
+          <div>
+            <p class="step-title">03 現貓挑選</p>
+            <small>挑選心儀幼貓並進入預約</small>
+          </div>
+          <p>選定幼貓需支付總價 50% 定金；5 個月以下幼貓需支付絕育押金，完成絕育後全額退還。</p>
+        </div>
+        <div class="step">
+          <div>
+            <p class="step-title">04 完成交付</p>
+            <small>健康檢查完成後交付</small>
+          </div>
+          <p>交付前安排專業健檢並提供完整報告，交付後持續提供照護指引，確保新手家長也能穩定照顧。</p>
+        </div>
+      </section>
+
+      <section class="plan">
+        <h2 class="title">保障計劃</h2>
+        <div class="grid-2">
+          <div class="cell">
+            <ul>
+              <li>體內外驅蟲與疫苗基礎完成</li>
+              <li>晶片與血統資料建檔</li>
+              <li>TICA／相關證書文件</li>
+            </ul>
+          </div>
+          <div class="cell">
+            <ul>
+              <li>毛色基因檢測與血型檢測報告</li>
+              <li>常見傳染病篩檢紀錄</li>
+              <li>交付後照護諮詢與健康追蹤</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+
+      <section>
+        <h2 class="title">線上排隊預約（串接 Google）</h2>
+        <p class="sub">填寫後會直接送到 Google Apps Script / Google Sheet 後端。</p>
+        <form id="queue-form" class="queue-form">
+          <div>
+            <label for="name">姓名 *</label>
+            <input id="name" name="name" required />
+          </div>
+          <div>
+            <label for="phone">電話 *</label>
+            <input id="phone" name="phone" required />
+          </div>
+          <div>
+            <label for="lineId">LINE ID</label>
+            <input id="lineId" name="lineId" />
+          </div>
+          <div>
+            <label for="preference">偏好（性別 / 毛色）</label>
+            <input id="preference" name="preference" />
+          </div>
+          <div class="full">
+            <label for="note">補充需求</label>
+            <textarea id="note" name="note" rows="4"></textarea>
+          </div>
+          <div class="full">
+            <button type="submit">送出排隊申請</button>
+            <p id="queue-status" class="queue-status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="qa">
+        <h2 class="title">Q . A 問答</h2>
+        <article class="qa-item">
+          <p class="q">Q1：排隊定金可以退嗎？</p>
+          <p class="a">A：排隊定金一經支付恕不退還，但可長期保留排隊資格，直到挑選到合適幼貓。</p>
+        </article>
+        <article class="qa-item">
+          <p class="q">Q2：可以只看現場不排隊嗎？</p>
+          <p class="a">A：為維持秩序與幼貓穩定，採預約制安排，建議先完成意向表單與資格確認。</p>
+        </article>
+        <article class="qa-item">
+          <p class="q">Q3：絕育押金如何退還？</p>
+          <p class="a">A：於約定月齡內完成絕育並提供證明後，即依流程全額退還。</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="container">
+      <div>命中註定的相遇・無可取代的唯一<br />A destined encounter・An irreplaceable bond</div>
+      <div>MAUYUAN 貓苑｜Beyond Breeding<br />Breed・Care・Connection</div>
+    </footer>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
