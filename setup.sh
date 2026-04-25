@@ -41,9 +41,26 @@ check_command() {
 }
 
 check_command docker
-check_command docker-compose 2>/dev/null || check_command "docker compose"
 check_command curl
 check_command openssl
+
+# Docker Compose 偵測：支援 v1 (docker-compose) 與 v2 plugin (docker compose)
+if command -v docker-compose &>/dev/null; then
+    DC="docker-compose"
+elif docker compose version &>/dev/null; then
+    DC="docker compose"
+else
+    log_error "docker-compose / docker compose plugin 都未偵測到，請先安裝"
+    exit 1
+fi
+log_ok "Docker Compose 偵測成功: ${DC}"
+
+# sed -i 在 GNU (Linux) 與 BSD (macOS) 行為不同，這裡偵測一次後續沿用
+if sed --version &>/dev/null; then
+    SED_INPLACE=(sed -i)
+else
+    SED_INPLACE=(sed -i '')
+fi
 
 # ─── 2. 環境變數設定 ──────────────────────────────────────
 log_step "環境變數設定"
@@ -60,11 +77,11 @@ if [ ! -f ".env" ]; then
     QDRANT_KEY=$(openssl rand -hex 16)
     WEBUI_SECRET=$(openssl rand -hex 16)
 
-    sed -i "s/your-32-char-encryption-key-here-change-me/${N8N_KEY}/" .env
-    sed -i "s/your-strong-postgres-password-here/${POSTGRES_PASS}/" .env
-    sed -i "s/your-strong-redis-password-here/${REDIS_PASS}/" .env
-    sed -i "s/your-qdrant-api-key-here/${QDRANT_KEY}/" .env
-    sed -i "s/your-open-webui-secret-key/${WEBUI_SECRET}/" .env
+    "${SED_INPLACE[@]}" "s/your-32-char-encryption-key-here-change-me/${N8N_KEY}/" .env
+    "${SED_INPLACE[@]}" "s/your-strong-postgres-password-here/${POSTGRES_PASS}/" .env
+    "${SED_INPLACE[@]}" "s/your-strong-redis-password-here/${REDIS_PASS}/" .env
+    "${SED_INPLACE[@]}" "s/your-qdrant-api-key-here/${QDRANT_KEY}/" .env
+    "${SED_INPLACE[@]}" "s/your-open-webui-secret-key/${WEBUI_SECRET}/" .env
 
     log_ok "安全金鑰已自動生成並寫入 .env"
     echo ""
@@ -132,18 +149,18 @@ log_ok "Nginx 設定建立完成"
 # ─── 4. 啟動服務 ──────────────────────────────────────────
 log_step "啟動 Docker 服務"
 
-docker compose pull
+$DC pull
 log_ok "映像檔拉取完成"
 
-docker compose up -d postgres redis
+$DC up -d postgres redis
 log_info "等待資料庫啟動..."
 sleep 15
 
-docker compose up -d qdrant ollama
+$DC up -d qdrant ollama
 log_info "等待向量資料庫和 LLM 引擎啟動..."
 sleep 10
 
-docker compose up -d n8n n8n_worker open_webui
+$DC up -d n8n n8n_worker open_webui
 log_info "等待 n8n 啟動..."
 sleep 20
 
@@ -220,14 +237,23 @@ echo "  1. 開啟 http://localhost:5678"
 echo "  2. Settings → Import workflow"
 echo "  3. 依序匯入 workflows/ 目錄下所有 .json 檔案"
 echo ""
-echo "  方法2 (CLI):"
-echo "  docker exec -it n8n_main n8n import:workflow --input=/workflows/"
+echo "  方法2 (CLI，本腳本會自動嘗試):"
+echo "  docker exec n8n_main n8n import:workflow --separate --input=/tmp/import-workflows"
 echo ""
 
-# 複製 workflows 到容器
-docker cp workflows/. n8n_main:/home/node/.n8n/workflows/ 2>/dev/null && \
-    log_ok "Workflows 已複製到容器" || \
-    log_warn "請手動匯入 workflows/"
+# 自動匯入 workflows 進 n8n（寫入 Postgres，UI 立即看得到）
+WF_COUNT=$(ls workflows/*.json 2>/dev/null | wc -l | tr -d ' ')
+if [ "${WF_COUNT}" -gt 0 ]; then
+    docker exec n8n_main mkdir -p /tmp/import-workflows 2>/dev/null || true
+    if docker cp workflows/. n8n_main:/tmp/import-workflows/ 2>/dev/null && \
+       docker exec n8n_main n8n import:workflow --separate --input=/tmp/import-workflows 2>/dev/null; then
+        log_ok "Workflows 自動匯入成功（共 ${WF_COUNT} 個）"
+    else
+        log_warn "自動匯入失敗，請從 UI 手動匯入 workflows/*.json"
+    fi
+else
+    log_warn "workflows/ 目錄沒有 JSON 檔案"
+fi
 
 # ─── 9. 完成 ─────────────────────────────────────────────
 log_step "部署完成"
