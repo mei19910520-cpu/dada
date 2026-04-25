@@ -1,0 +1,396 @@
+{
+  "name": "Cat.vbs｜Threads 關鍵字陷阱系統",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "tkt-trigger-001",
+      "name": "▶️ 手動執行",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [120, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "hours", "hoursInterval": 2 }
+          ]
+        }
+      },
+      "id": "tkt-cron-002",
+      "name": "⏰ 每 2 小時自動掃描",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [120, 460]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "apify_token",
+              "value": "={{ $env.APIFY_TOKEN || 'PASTE_YOUR_APIFY_TOKEN' }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "claude_api_key",
+              "value": "={{ $env.ANTHROPIC_API_KEY || 'sk-ant-PASTE_YOUR_KEY' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "google_sheet_id",
+              "value": "={{ $env.GOOGLE_SHEET_ID || 'PASTE_YOUR_SHEET_ID' }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "line_token",
+              "value": "={{ $env.LINE_NOTIFY_TOKEN || 'PASTE_YOUR_LINE_TOKEN' }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "alert_threshold",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "a6",
+              "name": "max_items_per_keyword",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "a7",
+              "name": "apify_actor_id",
+              "value": "apify~threads-scraper",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "keywords",
+              "value": "=[\"貓舍推薦台灣\",\"哪裡買布偶貓\",\"英短多少錢\",\"品種貓遺傳病怎麼選\",\"CFA認證貓舍\",\"品種貓好養嗎\",\"養貓費用一個月\",\"貓咪陪伴感\",\"養貓需要準備什麼\",\"貓舍黑名單\",\"買貓被騙\",\"貓舍不推薦\"]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "tkt-config-003",
+      "name": "⚙️ 系統設定（改這裡）",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [340, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 把每個關鍵字拆成獨立 item，後面節點會逐一掃描\nconst cfg = $json;\nreturn cfg.keywords.map(kw => ({\n  json: {\n    keyword: kw,\n    apify_token: cfg.apify_token,\n    claude_api_key: cfg.claude_api_key,\n    google_sheet_id: cfg.google_sheet_id,\n    line_token: cfg.line_token,\n    alert_threshold: cfg.alert_threshold,\n    max_items_per_keyword: cfg.max_items_per_keyword,\n    apify_actor_id: cfg.apify_actor_id\n  }\n}));"
+      },
+      "id": "tkt-split-004",
+      "name": "🔄 拆分關鍵字",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $json.apify_actor_id }}/run-sync-get-dataset-items?token={{ $json.apify_token }}&timeout=120",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"searchQueries\": [\"{{ $json.keyword }}\"],\n  \"maxItems\": {{ $json.max_items_per_keyword }},\n  \"language\": \"zh\"\n}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 130000
+        }
+      },
+      "id": "tkt-apify-005",
+      "name": "🕷️ 啟動 Apify 爬蟲",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 把 Apify 回傳的貼文陣列展開成 n8n items，並補上來源關鍵字\nconst keyword = $('🔄 拆分關鍵字').item.json.keyword;\nconst posts = Array.isArray($json) ? $json : ($json.body || []);\n\nreturn posts.map(p => {\n  const user = p.user || p.author || {};\n  return {\n    json: {\n      platform_id: String(p.userId || user.id || user.username || p.id || ''),\n      username: user.username || p.username || '',\n      display_name: user.fullName || user.full_name || user.displayName || '',\n      profile_url: user.profileUrl || (user.username ? `https://www.threads.net/@${user.username}` : ''),\n      follower_count: Number(user.followerCount || user.followers || 0),\n      trigger_keyword: keyword,\n      post_text: (p.text || p.caption || '').slice(0, 500),\n      post_url: p.url || p.postUrl || '',\n      posted_at: p.publishedAt || p.timestamp || '',\n      raw: p\n    }\n  };\n}).filter(it => it.json.platform_id);"
+      },
+      "id": "tkt-normalize-006",
+      "name": "🧹 整理貼文資料",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 380]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('⚙️ 系統設定（改這裡）').item.json.google_sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": { "__rl": true, "value": "潛在客戶庫", "mode": "name" },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "id": "tkt-sheet-read-007",
+      "name": "📋 Google Sheet 去重查詢",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1220, 380],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Sheets OAuth2" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 把現有 sheet 資料的 platform_id 拿出來，過濾掉已存在的用戶\nconst existingRows = $items('📋 Google Sheet 去重查詢').map(i => i.json);\nconst seen = new Set(existingRows.map(r => String(r.platform_id || '')));\n\nconst posts = $items('🧹 整理貼文資料').map(i => i.json);\nconst fresh = posts.filter(p => !seen.has(String(p.platform_id)));\n\nreturn fresh.map(p => ({ json: p }));"
+      },
+      "id": "tkt-dedupe-008",
+      "name": "🔍 過濾新用戶",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $('⚙️ 系統設定（改這裡）').item.json.claude_api_key }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-haiku-4-5-20251001\",\n  \"max_tokens\": 600,\n  \"system\": \"你是一位寵物產業的成交策略師。給你一則 Threads 貼文，請判斷該作者是否為品種貓潛在買家，並回傳純 JSON（不要加任何說明文字）。欄位：customer_type(審美/知識/情感/衝動)、spend_level(A/B/C)、conversion_score(1-10 整數)、intent_signals(陣列)、best_contact_angle(字串)、risk_flags(陣列)、analysis_reason(字串，30 字內)。\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"觸發關鍵字：{{ $json.trigger_keyword }}\\n帳號：@{{ $json.username }} ({{ $json.display_name }})\\n粉絲數：{{ $json.follower_count }}\\n貼文內容：{{ $json.post_text.replace(/\\\"/g, '\\\\\\\"').replace(/\\n/g, ' ') }}\\n\\n請輸出 JSON。\"\n    }\n  ]\n}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 60000
+        }
+      },
+      "id": "tkt-claude-009",
+      "name": "🤖 Claude 分析",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1660, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析 Claude 回應 → 把分析結果合併進原 post item\nconst post = $('🔍 過濾新用戶').item.json;\nconst resp = $json;\n\nconst rawText = (resp?.content?.[0]?.text || '').trim();\n\nlet parsed = {\n  customer_type: '',\n  spend_level: 'C',\n  conversion_score: 1,\n  intent_signals: [],\n  best_contact_angle: '',\n  risk_flags: [],\n  analysis_reason: '解析失敗'\n};\n\ntry {\n  const m = rawText.match(/\\{[\\s\\S]*\\}/);\n  if (m) parsed = { ...parsed, ...JSON.parse(m[0]) };\n} catch (e) {\n  parsed.analysis_reason = '解析失敗：' + e.message;\n}\n\nconst score = Math.max(1, Math.min(10, parseInt(parsed.conversion_score, 10) || 1));\nconst now = new Date().toISOString();\n\nreturn [{\n  json: {\n    platform_id: post.platform_id,\n    username: post.username,\n    display_name: post.display_name,\n    profile_url: post.profile_url,\n    follower_count: post.follower_count,\n    trigger_keyword: post.trigger_keyword,\n    post_text: post.post_text,\n    customer_type: parsed.customer_type,\n    spend_level: parsed.spend_level,\n    conversion_score: score,\n    intent_signals: Array.isArray(parsed.intent_signals) ? parsed.intent_signals.join('｜') : String(parsed.intent_signals || ''),\n    best_contact_angle: parsed.best_contact_angle,\n    risk_flags: Array.isArray(parsed.risk_flags) ? parsed.risk_flags.join('｜') : String(parsed.risk_flags || ''),\n    analysis_reason: parsed.analysis_reason,\n    status: '潛在',\n    contact_count: 0,\n    scraped_at: now,\n    last_updated: now,\n    is_high_priority: score >= ($('⚙️ 系統設定（改這裡）').item.json.alert_threshold || 7)\n  }\n}];"
+      },
+      "id": "tkt-parse-010",
+      "name": "📦 解析 Claude 回應",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1880, 380]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('⚙️ 系統設定（改這裡）').item.json.google_sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": { "__rl": true, "value": "潛在客戶庫", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "platform_id": "={{ $json.platform_id }}",
+            "username": "={{ $json.username }}",
+            "display_name": "={{ $json.display_name }}",
+            "profile_url": "={{ $json.profile_url }}",
+            "follower_count": "={{ $json.follower_count }}",
+            "trigger_keyword": "={{ $json.trigger_keyword }}",
+            "post_text": "={{ $json.post_text }}",
+            "customer_type": "={{ $json.customer_type }}",
+            "spend_level": "={{ $json.spend_level }}",
+            "conversion_score": "={{ $json.conversion_score }}",
+            "intent_signals": "={{ $json.intent_signals }}",
+            "best_contact_angle": "={{ $json.best_contact_angle }}",
+            "risk_flags": "={{ $json.risk_flags }}",
+            "analysis_reason": "={{ $json.analysis_reason }}",
+            "status": "={{ $json.status }}",
+            "contact_count": "={{ $json.contact_count }}",
+            "scraped_at": "={{ $json.scraped_at }}",
+            "last_updated": "={{ $json.last_updated }}",
+            "is_high_priority": "={{ $json.is_high_priority }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "tkt-sheet-write-011",
+      "name": "📝 寫入潛在客戶庫",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2100, 380],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Sheets OAuth2" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.conversion_score }}",
+              "rightValue": "={{ $('⚙️ 系統設定（改這裡）').item.json.alert_threshold }}",
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "tkt-if-012",
+      "name": "⚡ 高分篩選",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2320, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://notify-api.line.me/api/notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $('⚙️ 系統設定（改這裡）').item.json.line_token }}" },
+            { "name": "Content-Type", "value": "application/x-www-form-urlencoded" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "=\n🔥 高分潛客出現！\n分數：{{ $json.conversion_score }}/10 ({{ $json.spend_level }}級)\n類型：{{ $json.customer_type }}\n@{{ $json.username }} (粉:{{ $json.follower_count }})\n關鍵字：{{ $json.trigger_keyword }}\n切入點：{{ $json.best_contact_angle }}\n貼文：{{ $json.post_text }}\n👉 {{ $json.profile_url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "tkt-line-013",
+      "name": "📲 LINE 高分告警",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2540, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 彙總本次掃描的統計數據\nconst all = $items('📦 解析 Claude 回應').map(i => i.json);\nif (all.length === 0) {\n  return [{ json: {\n    scan_time: new Date().toISOString(),\n    total_scanned: 0,\n    high_priority_count: 0,\n    avg_conversion_score: 0,\n    keywords_covered: '',\n    status: '無新資料'\n  }}];\n}\n\nconst threshold = $('⚙️ 系統設定（改這裡）').item.json.alert_threshold || 7;\nconst totalScore = all.reduce((s, r) => s + (Number(r.conversion_score) || 0), 0);\nconst keywords = [...new Set(all.map(r => r.trigger_keyword))];\n\nreturn [{ json: {\n  scan_time: new Date().toISOString(),\n  total_scanned: all.length,\n  high_priority_count: all.filter(r => r.conversion_score >= threshold).length,\n  avg_conversion_score: Math.round((totalScore / all.length) * 100) / 100,\n  keywords_covered: keywords.join('｜'),\n  status: '完成'\n}}];"
+      },
+      "id": "tkt-stats-014",
+      "name": "📊 統計掃描",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2540, 480]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('⚙️ 系統設定（改這裡）').item.json.google_sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": { "__rl": true, "value": "掃描紀錄", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "scan_time": "={{ $json.scan_time }}",
+            "total_scanned": "={{ $json.total_scanned }}",
+            "high_priority_count": "={{ $json.high_priority_count }}",
+            "avg_conversion_score": "={{ $json.avg_conversion_score }}",
+            "keywords_covered": "={{ $json.keywords_covered }}",
+            "status": "={{ $json.status }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "tkt-sheet-log-015",
+      "name": "📈 寫入掃描紀錄",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2760, 480],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "google-cred", "name": "Google Sheets OAuth2" }
+      }
+    }
+  ],
+  "connections": {
+    "▶️ 手動執行": {
+      "main": [[{ "node": "⚙️ 系統設定（改這裡）", "type": "main", "index": 0 }]]
+    },
+    "⏰ 每 2 小時自動掃描": {
+      "main": [[{ "node": "⚙️ 系統設定（改這裡）", "type": "main", "index": 0 }]]
+    },
+    "⚙️ 系統設定（改這裡）": {
+      "main": [[{ "node": "🔄 拆分關鍵字", "type": "main", "index": 0 }]]
+    },
+    "🔄 拆分關鍵字": {
+      "main": [[{ "node": "🕷️ 啟動 Apify 爬蟲", "type": "main", "index": 0 }]]
+    },
+    "🕷️ 啟動 Apify 爬蟲": {
+      "main": [[{ "node": "🧹 整理貼文資料", "type": "main", "index": 0 }]]
+    },
+    "🧹 整理貼文資料": {
+      "main": [[{ "node": "📋 Google Sheet 去重查詢", "type": "main", "index": 0 }]]
+    },
+    "📋 Google Sheet 去重查詢": {
+      "main": [[{ "node": "🔍 過濾新用戶", "type": "main", "index": 0 }]]
+    },
+    "🔍 過濾新用戶": {
+      "main": [[{ "node": "🤖 Claude 分析", "type": "main", "index": 0 }]]
+    },
+    "🤖 Claude 分析": {
+      "main": [[{ "node": "📦 解析 Claude 回應", "type": "main", "index": 0 }]]
+    },
+    "📦 解析 Claude 回應": {
+      "main": [[
+        { "node": "📝 寫入潛在客戶庫", "type": "main", "index": 0 },
+        { "node": "📊 統計掃描", "type": "main", "index": 0 }
+      ]]
+    },
+    "📝 寫入潛在客戶庫": {
+      "main": [[{ "node": "⚡ 高分篩選", "type": "main", "index": 0 }]]
+    },
+    "⚡ 高分篩選": {
+      "main": [
+        [{ "node": "📲 LINE 高分告警", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "📊 統計掃描": {
+      "main": [[{ "node": "📈 寫入掃描紀錄", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "versionId": "tkt-v1.0.0",
+  "id": "threads-keyword-trap",
+  "tags": [
+    { "name": "Cat.vbs" },
+    { "name": "Threads" },
+    { "name": "Lead Generation" }
+  ]
+}
