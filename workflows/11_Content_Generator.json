@@ -1,0 +1,48 @@
+{
+  "name": "[11] Content_Generator — 多平台內容工廠",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 10 }] } },
+      "id": "cg-trigger-001",
+      "name": "每日觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 280]
+    },
+    {
+      "parameters": { "jsCode": "const platforms=['IG','FB','TikTok','Threads']; return platforms.map(p=>({json:{platform:p, topic:'本日主題', target_count:3}}));" },
+      "id": "cg-seed-002",
+      "name": "建立平台批次",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 280]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Content Generator AI，針對{{ $json.platform }}生成{{ $json.target_count }}篇內容，輸出JSON陣列，每篇含title/content/cta/hashtags[20]/image_prompt。" },
+      "id": "cg-agent-003",
+      "name": "內容生成Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, 280]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.7 } },
+      "id": "cg-llm-004",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [660, 480],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    }
+  ],
+  "connections": {
+    "每日觸發": { "main": [[{ "node": "建立平台批次", "type": "main", "index": 0 }]] },
+    "建立平台批次": { "main": [[{ "node": "內容生成Agent", "type": "main", "index": 0 }]] },
+    "LLM": { "ai_languageModel": [[{ "node": "內容生成Agent", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000011-cg-0000-0000-000000000011",
+  "id": "11-content-generator",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}

@@ -1,0 +1,48 @@
+{
+  "name": "[15] SEO_Ads_Weekly — SEO與廣告輸出",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "weeks", "weekday": "1", "triggerAtHour": 11 }] } },
+      "id": "sa-trigger-001",
+      "name": "每週觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 250]
+    },
+    {
+      "parameters": { "jsCode": "return [{json:{theme:'本週主題', keywords:['貓舍推薦','幼貓照護','英短價格']}}];" },
+      "id": "sa-keywords-002",
+      "name": "輸入主題與關鍵字",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 250]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 SEO & Ads AI Specialist。根據{{ JSON.stringify($json) }}輸出keyword_cluster/seo_article_outline/ads_copy/budget_hint(JSON)。" },
+      "id": "sa-agent-003",
+      "name": "SEO廣告Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, 250]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.5 } },
+      "id": "sa-llm-004",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [660, 450],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    }
+  ],
+  "connections": {
+    "每週觸發": { "main": [[{ "node": "輸入主題與關鍵字", "type": "main", "index": 0 }]] },
+    "輸入主題與關鍵字": { "main": [[{ "node": "SEO廣告Agent", "type": "main", "index": 0 }]] },
+    "LLM": { "ai_languageModel": [[{ "node": "SEO廣告Agent", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000015-sa-0000-0000-000000000015",
+  "id": "15-seo-ads-weekly",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}

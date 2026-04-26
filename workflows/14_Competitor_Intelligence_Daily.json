@@ -1,0 +1,48 @@
+{
+  "name": "[14] Competitor_Intelligence_Daily — 競品監控",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 8 }] } },
+      "id": "ci-trigger-001",
+      "name": "每日觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 250]
+    },
+    {
+      "parameters": { "jsCode": "return [{json:{competitor_feed:[{brand:'Competitor A', channel:'IG', content:'新品限時折扣'}]}}];" },
+      "id": "ci-feed-002",
+      "name": "整理競品資料",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 250]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Competitor Intelligence AI。分析{{ JSON.stringify($json.competitor_feed) }}並輸出competitor_moves/copyable_strategies/outperform_strategies/threat_level(JSON)。" },
+      "id": "ci-agent-003",
+      "name": "競品分析Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, 250]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.4 } },
+      "id": "ci-llm-004",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [660, 450],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    }
+  ],
+  "connections": {
+    "每日觸發": { "main": [[{ "node": "整理競品資料", "type": "main", "index": 0 }]] },
+    "整理競品資料": { "main": [[{ "node": "競品分析Agent", "type": "main", "index": 0 }]] },
+    "LLM": { "ai_languageModel": [[{ "node": "競品分析Agent", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000014-ci-0000-0000-000000000014",
+  "id": "14-competitor-intelligence-daily",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}
