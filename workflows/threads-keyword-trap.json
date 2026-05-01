@@ -47,8 +47,14 @@
             },
             {
               "id": "a4",
-              "name": "line_token",
-              "value": "={{ $env.LINE_NOTIFY_TOKEN || 'PASTE_YOUR_LINE_TOKEN' }}",
+              "name": "line_channel_access_token",
+              "value": "={{ $env.LINE_CHANNEL_ACCESS_TOKEN || 'PASTE_YOUR_CHANNEL_ACCESS_TOKEN' }}",
+              "type": "string"
+            },
+            {
+              "id": "a4b",
+              "name": "line_user_id",
+              "value": "={{ $env.LINE_USER_ID || 'PASTE_YOUR_LINE_USER_ID' }}",
               "type": "string"
             },
             {
@@ -87,7 +93,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 把每個關鍵字拆成獨立 item，後面節點會逐一掃描\nconst cfg = $json;\nreturn cfg.keywords.map(kw => ({\n  json: {\n    keyword: kw,\n    apify_token: cfg.apify_token,\n    claude_api_key: cfg.claude_api_key,\n    google_sheet_id: cfg.google_sheet_id,\n    line_token: cfg.line_token,\n    alert_threshold: cfg.alert_threshold,\n    max_items_per_keyword: cfg.max_items_per_keyword,\n    apify_actor_id: cfg.apify_actor_id\n  }\n}));"
+        "jsCode": "// 把每個關鍵字拆成獨立 item，後面節點會逐一掃描\nconst cfg = $json;\nreturn cfg.keywords.map(kw => ({\n  json: {\n    keyword: kw,\n    apify_token: cfg.apify_token,\n    claude_api_key: cfg.claude_api_key,\n    google_sheet_id: cfg.google_sheet_id,\n    line_channel_access_token: cfg.line_channel_access_token,\n    line_user_id: cfg.line_user_id,\n    alert_threshold: cfg.alert_threshold,\n    max_items_per_keyword: cfg.max_items_per_keyword,\n    apify_actor_id: cfg.apify_actor_id\n  }\n}));"
       },
       "id": "tkt-split-004",
       "name": "🔄 拆分關鍵字",
@@ -262,28 +268,21 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://notify-api.line.me/api/notify",
+        "url": "https://api.line.me/v2/bot/message/push",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('⚙️ 系統設定（改這裡）').item.json.line_token }}" },
-            { "name": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            { "name": "Authorization", "value": "=Bearer {{ $('⚙️ 系統設定（改這裡）').item.json.line_channel_access_token }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
-        "contentType": "form-urlencoded",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "message",
-              "value": "=\n🔥 高分潛客出現！\n分數：{{ $json.conversion_score }}/10 ({{ $json.spend_level }}級)\n類型：{{ $json.customer_type }}\n@{{ $json.username }} (粉:{{ $json.follower_count }})\n關鍵字：{{ $json.trigger_keyword }}\n切入點：{{ $json.best_contact_angle }}\n貼文：{{ $json.post_text }}\n👉 {{ $json.profile_url }}"
-            }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $('⚙️ 系統設定（改這裡）').item.json.line_user_id }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"🔥 高分潛客出現！\\n分數：{{ $json.conversion_score }}/10 ({{ $json.spend_level }}級)\\n類型：{{ $json.customer_type }}\\n@{{ $json.username }} (粉:{{ $json.follower_count }})\\n關鍵字：{{ $json.trigger_keyword }}\\n切入點：{{ $json.best_contact_angle }}\\n貼文：{{ $json.post_text.replace(/\\n/g, ' ').replace(/\"/g, '\\\\\"') }}\\n👉 {{ $json.profile_url }}\"\n    }\n  ]\n}",
         "options": {}
       },
       "id": "tkt-line-013",
-      "name": "📲 LINE 高分告警",
+      "name": "📲 LINE 高分告警 (Messaging API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [2540, 280]
@@ -370,7 +369,7 @@
     },
     "⚡ 高分篩選": {
       "main": [
-        [{ "node": "📲 LINE 高分告警", "type": "main", "index": 0 }],
+        [{ "node": "📲 LINE 高分告警 (Messaging API)", "type": "main", "index": 0 }],
         []
       ]
     },
