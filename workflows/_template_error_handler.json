@@ -1,0 +1,81 @@
+{
+  "name": "[ERR] _template_error_handler — 全局錯誤處理模板",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "err-trigger-001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const err = $json;\nconst execution = err.execution || {};\nconst lastNode = err.execution?.lastNodeExecuted || '';\nconst errMsg = err.execution?.error?.message || err.error?.message || '未知錯誤';\nconst errType = err.execution?.error?.name || err.error?.name || 'Error';\nconst wfId = err.workflow?.id || '';\nconst wfName = err.workflow?.name || '';\nconst execId = execution.id || '';\n\n// 嚴重度判斷：含「critical / fatal / panic」字樣即視為 P0\nconst severity = /critical|fatal|panic|cannot connect/i.test(errMsg) ? 'P0' : 'P1';\n\nreturn [{\n  json: {\n    workflow_id: wfId,\n    workflow_name: wfName,\n    node_name: lastNode,\n    error_type: errType,\n    error_message: errMsg.substring(0, 1000),\n    execution_id: execId,\n    severity,\n    payload: err,\n    occurred_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "err-extract-002",
+      "name": "解析錯誤內容",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_errors (workflow_id, workflow_name, node_name, error_type, error_message, execution_id, payload, notified) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, FALSE) RETURNING id;",
+        "options": {
+          "queryReplacement": "={{ $json.workflow_id }},={{ $json.workflow_name }},={{ $json.node_name }},={{ $json.error_type }},={{ $json.error_message }},={{ $json.execution_id }},={{ JSON.stringify($json.payload) }}"
+        }
+      },
+      "id": "err-pg-003",
+      "name": "寫入 workflow_errors",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 300],
+      "credentials": {
+        "postgres": { "id": "postgres-cred", "name": "PostgreSQL" }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/notification-hub",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: 'all', level: $('解析錯誤內容').item.json.severity === 'P0' ? 'critical' : 'error', title: '🚨 Workflow 錯誤：' + $('解析錯誤內容').item.json.workflow_name, message: '節點：' + $('解析錯誤內容').item.json.node_name + '\\n錯誤：' + $('解析錯誤內容').item.json.error_message + '\\n時間：' + $('解析錯誤內容').item.json.occurred_at + '\\n執行 ID：' + $('解析錯誤內容').item.json.execution_id, source: 'error_handler' }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "err-notify-004",
+      "name": "呼叫 Notification Hub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "解析錯誤內容", "type": "main", "index": 0 }]]
+    },
+    "解析錯誤內容": {
+      "main": [[{ "node": "寫入 workflow_errors", "type": "main", "index": 0 }]]
+    },
+    "寫入 workflow_errors": {
+      "main": [[{ "node": "呼叫 Notification Hub", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "0000000e-err-00000-0000-00000000000e",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "_template-error-handler",
+  "tags": [
+    { "name": "AI-RnD-Dept", "id": "tag-ai-rnd" },
+    { "name": "Infrastructure", "id": "tag-infra" }
+  ]
+}

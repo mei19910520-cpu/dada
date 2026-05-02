@@ -98,20 +98,26 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
-        "text": "={{ $json.telegram_message }}",
-        "additionalFields": {
-          "parse_mode": "Markdown"
-        }
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/notification-hub",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: 'all', level: 'info', title: 'AI研發部門日報 ' + $json.stats.date, message: $json.telegram_message, source: '09_Daily_Briefing' }) }}",
+        "options": { "timeout": 30000 }
       },
       "id": "db-telegram-008",
-      "name": "發送Telegram日報",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "name": "發送日報通知",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [1340, 200],
-      "credentials": {
-        "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" }
-      }
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -181,7 +187,7 @@
     "格式化簡報": {
       "main": [
         [
-          { "node": "發送Telegram日報", "type": "main", "index": 0 },
+          { "node": "發送日報通知", "type": "main", "index": 0 },
           { "node": "存入Notion日報", "type": "main", "index": 0 },
           { "node": "回應完成", "type": "main", "index": 0 }
         ]
@@ -190,7 +196,10 @@
     "GPT-4o-mini (簡報)": {}
   },
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "_template-error-handler"
+  },
   "versionId": "00000009-db-00000-0000-000000000009",
   "meta": { "templateCredsSetupCompleted": false },
   "id": "09-daily-briefing",

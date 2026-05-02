@@ -1,0 +1,230 @@
+{
+  "name": "[10] Notification Hub — 統一通知中樞 (Telegram + LINE + Notion)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notification-hub",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "nh-webhook-001",
+      "name": "接收通知請求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 標準化輸入\n//   channel: telegram | line | notion | all\n//   level:   info | warning | error | critical\n//   title:   string\n//   message: string\n//   source:  workflow id 或 employee id\n//   attachments: optional [{ name, url }]\nconst input = $input.first().json.body || $input.first().json;\n\nconst channel = (input.channel || 'all').toLowerCase();\nconst level = (input.level || 'info').toLowerCase();\nconst title = input.title || '通知';\nconst message = input.message || '';\nconst source = input.source || 'unknown';\nconst attachments = Array.isArray(input.attachments) ? input.attachments : [];\n\n// 等級轉表情\nconst emoji = { info: 'ℹ️', warning: '⚠️', error: '🚨', critical: '🔥' }[level] || 'ℹ️';\n\nconst send_telegram = channel === 'all' || channel === 'telegram';\nconst send_line     = channel === 'all' || channel === 'line';\nconst send_notion   = channel === 'all' || channel === 'notion' || level === 'critical';\n\n// 共用文字（純文字版）\nconst plainText = [\n  `${emoji} ${title}`,\n  '',\n  message,\n  '',\n  `來源：${source}`,\n  `時間：${new Date().toISOString()}`\n].join('\\n');\n\n// Telegram Markdown 版（限制 4096 字）\nconst telegramText = [\n  `${emoji} *${title.replace(/[*_`]/g, '')}*`,\n  '',\n  message.substring(0, 3500),\n  '',\n  `_來源：${source}_`,\n  `_時間：${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}_`\n].join('\\n');\n\nreturn [{\n  json: {\n    channel, level, title, message, source, attachments,\n    plain_text: plainText,\n    telegram_text: telegramText,\n    send_telegram, send_line, send_notion,\n    occurred_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "nh-normalize-002",
+      "name": "標準化輸入",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "tg-check",
+              "leftValue": "={{ $json.send_telegram }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      },
+      "id": "nh-iftg-003",
+      "name": "需要 Telegram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.telegram_text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "nh-tg-004",
+      "name": "發送 Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [940, 140],
+      "credentials": {
+        "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "line-check",
+              "leftValue": "={{ $json.send_line }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      },
+      "id": "nh-ifline-005",
+      "name": "需要 LINE?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://api.line.me/v2/bot/message/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.LINE_CHANNEL_ACCESS_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $env.LINE_USER_ID, messages: [{ type: 'text', text: $json.plain_text.substring(0, 4900) }] }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "nh-line-006",
+      "name": "發送 LINE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 400],
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "notion-check",
+              "leftValue": "={{ $json.send_notion }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      },
+      "id": "nh-ifnotion-007",
+      "name": "需要 Notion?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [700, 600]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $env.NOTION_INSIGHTS_DB_ID }}",
+        "title": "={{ $json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "類型|select", "selectValue": "通知" },
+            { "key": "日期|date", "date": "={{ $json.occurred_at }}" }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            { "type": "heading_2", "textContent": "={{ $json.title }}" },
+            { "type": "paragraph", "textContent": "={{ $json.message }}" },
+            { "type": "paragraph", "textContent": "=來源：{{ $json.source }} ｜ 等級：{{ $json.level }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "nh-notion-008",
+      "name": "寫入 Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [940, 600],
+      "credentials": {
+        "notionApi": { "id": "notion-cred", "name": "Notion API" }
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'dispatched', channel: $('標準化輸入').item.json.channel, level: $('標準化輸入').item.json.level, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "nh-respond-009",
+      "name": "回應完成",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "接收通知請求": {
+      "main": [[{ "node": "標準化輸入", "type": "main", "index": 0 }]]
+    },
+    "標準化輸入": {
+      "main": [
+        [
+          { "node": "需要 Telegram?", "type": "main", "index": 0 },
+          { "node": "需要 LINE?", "type": "main", "index": 0 },
+          { "node": "需要 Notion?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "需要 Telegram?": {
+      "main": [
+        [{ "node": "發送 Telegram", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "需要 LINE?": {
+      "main": [
+        [{ "node": "發送 LINE", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "需要 Notion?": {
+      "main": [
+        [{ "node": "寫入 Notion", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "發送 Telegram": {
+      "main": [[{ "node": "回應完成", "type": "main", "index": 0 }]]
+    },
+    "發送 LINE": {
+      "main": [[{ "node": "回應完成", "type": "main", "index": 0 }]]
+    },
+    "寫入 Notion": {
+      "main": [[{ "node": "回應完成", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "0000000a-nh-00000-0000-00000000000a",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "10-notification-hub",
+  "tags": [
+    { "name": "AI-RnD-Dept", "id": "tag-ai-rnd" },
+    { "name": "Infrastructure", "id": "tag-infra" }
+  ]
+}
