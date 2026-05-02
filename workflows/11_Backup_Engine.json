@@ -1,0 +1,89 @@
+{
+  "name": "[11] Backup Engine — 每日自動備份",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "bk-trigger-001",
+      "name": "每日03:00觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "/home/node/.n8n/scripts/backup.sh"
+      },
+      "id": "bk-exec-002",
+      "name": "執行備份腳本",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 60000
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析 backup.sh 最後一行的 JSON 輸出\nconst stdout = $json.stdout || '';\nconst lines = stdout.trim().split('\\n');\nlet result = { status: 'unknown' };\nfor (let i = lines.length - 1; i >= 0; i--) {\n  const line = lines[i].trim();\n  if (line.startsWith('{')) {\n    try { result = JSON.parse(line); break; } catch (e) {}\n  }\n}\nresult.exit_code = $json.exitCode || 0;\nresult.success = result.exit_code === 0 && result.status === 'success';\nreturn [{ json: result }];"
+      },
+      "id": "bk-parse-003",
+      "name": "解析備份結果",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/notification-hub",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $json.success ? 'notion' : 'all', level: $json.success ? 'info' : 'critical', title: $json.success ? '✅ 每日備份完成 ' + $json.date : '🚨 每日備份失敗', message: $json.success ? ('備份路徑：' + $json.path) : ('備份失敗，exit_code=' + $json.exit_code + '，請立即檢查 n8n 控制台'), source: '11_Backup_Engine' }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "bk-notify-004",
+      "name": "通知備份結果",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "每日03:00觸發": {
+      "main": [[{ "node": "執行備份腳本", "type": "main", "index": 0 }]]
+    },
+    "執行備份腳本": {
+      "main": [[{ "node": "解析備份結果", "type": "main", "index": 0 }]]
+    },
+    "解析備份結果": {
+      "main": [[{ "node": "通知備份結果", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "_template-error-handler"
+  },
+  "versionId": "0000000b-bk-00000-0000-00000000000b",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "11-backup-engine",
+  "tags": [
+    { "name": "AI-RnD-Dept", "id": "tag-ai-rnd" },
+    { "name": "Infrastructure", "id": "tag-infra" }
+  ]
+}

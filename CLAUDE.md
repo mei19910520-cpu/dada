@@ -32,7 +32,14 @@ workflows/            — n8n workflow JSON（可直接匯入）
   08_Google_Form_Feedback_Engine.json 表單反饋+潛客評分
   09_Daily_Briefing.json        每日執行簡報
   10_Notification_Hub.json      統一通知中樞（Telegram + LINE + Notion）
+  11_Backup_Engine.json         每日 03:00 自動備份（PostgreSQL + Qdrant + n8n）
+  12_Cost_Guardian.json         每小時檢查 API 成本，超預算自動暫停高頻 workflow
   _template_error_handler.json  全局錯誤處理模板（被各 workflow 的 errorWorkflow 設定指向）
+
+scripts/              — 維運腳本
+  backup.sh             一鍵備份（被 11_Backup_Engine 呼叫；可手動執行）
+  restore.sh            從備份還原：./scripts/restore.sh YYYY-MM-DD
+backups/              — 備份輸出目錄（.gitignore 管理）
 ```
 
 ## 6 個月發展藍圖
@@ -46,9 +53,12 @@ workflows/            — n8n workflow JSON（可直接匯入）
 5. **M5–M6 CI/CD 與長尾** — GitHub Actions + 表單自動優化 + 成本面板
 
 **Phase 1 已完成的基礎設施**：
-- `_template_error_handler.json`：所有 workflow 透過 `settings.errorWorkflow` 自動指向，捕捉錯誤 → 寫入 `workflow_errors` 表 → 呼叫 Notification Hub 告警。新 workflow 一律比照辦理。
+- `_template_error_handler.json`：所有業務 workflow（00–09、11、12）透過 `settings.errorWorkflow` 自動指向它，捕捉錯誤 → 寫入 `workflow_errors` 表 → 呼叫 Notification Hub 告警。新 workflow 一律比照辦理。**例外**：`10_Notification_Hub` 不可指向，避免錯誤處理器呼叫自己造成迴圈。
 - `10_Notification_Hub.json`：標準化通知入口 `POST /webhook/notification-hub`，payload `{channel: telegram|line|notion|all, level, title, message, source}`，業務層 workflow 不再直連 Telegram/LINE，一律走它。
+- `11_Backup_Engine.json` + `scripts/backup.sh`：每日 03:00 備份 PostgreSQL（pg_dump）、Qdrant snapshot、n8n workflows JSON 到 `./backups/{YYYY-MM-DD}/`，保留 `BACKUP_RETENTION_DAYS` 天，可選 S3 / gdrive 遠端上傳。還原用 `./scripts/restore.sh YYYY-MM-DD`。
+- `12_Cost_Guardian.json`：每小時查 `api_usage_log` 今日累計成本，超過 `DAILY_BUDGET_USD * COST_ALERT_THRESHOLD` 警告，超過 100% 透過 n8n API 自動 deactivate `01_Knowledge_Ingestion` 與 `04_Self_Learning_Loop`。需在 n8n UI Settings → API 開 personal API key 設定到 `N8N_API_KEY`。
 - `config/postgres-init.sql`：新增 `task_queue`、`api_usage_log`（含 `api_usage_daily` view）、`workflow_errors` 三張表，是後續 Phase 2/3 的資料基礎。
+- `docker-compose.yml`：所有核心服務（n8n main/worker、postgres、redis、qdrant、ollama）都補上 healthcheck；n8n 兩個容器 mount `./scripts` 與 `./backups`，讓 Backup Engine 能執行 `backup.sh`。
 
 ## 快速部署
 

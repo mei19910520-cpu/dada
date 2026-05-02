@@ -54,6 +54,16 @@ services:
     container_name: n8n_main
     ports:
       - "5678:5678"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./scripts:/home/node/.n8n/scripts:ro
+      - ./backups:/home/node/.n8n/backups
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
@@ -86,6 +96,16 @@ services:
     <<: *n8n-common
     container_name: n8n_worker
     command: worker
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'n8n.*worker' >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./scripts:/home/node/.n8n/scripts:ro
+      - ./backups:/home/node/.n8n/backups
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
@@ -160,6 +180,11 @@ services:
       - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
     volumes:
       - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/6333' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - ai_rnd_network
 
@@ -177,6 +202,12 @@ services:
     environment:
       - OLLAMA_KEEP_ALIVE=24h
       - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     # GPU支援 (取消註解以啟用NVIDIA GPU)
     # deploy:
     #   resources:

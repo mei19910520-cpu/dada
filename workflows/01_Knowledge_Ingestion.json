@@ -169,7 +169,7 @@
     }
   },
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "_template-error-handler" },
   "versionId": "00000001-ki-000-0000-000000000001",
   "meta": { "templateCredsSetupCompleted": false },
   "id": "01-knowledge-ingestion",

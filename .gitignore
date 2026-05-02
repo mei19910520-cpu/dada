@@ -1,0 +1,24 @@
+# Environment
+.env
+.env.local
+
+# Backups (保留目錄結構但不提交實際備份檔)
+backups/*
+!backups/.gitkeep
+
+# n8n local data
+.n8n/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Node (給 Phase 3 dashboard/ 預留)
+node_modules/
+.next/
+dist/

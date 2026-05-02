@@ -187,7 +187,7 @@
     "OpenAI Embeddings": {}
   },
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "_template-error-handler" },
   "versionId": "00000002-run-0000-0000-000000000002",
   "meta": { "templateCredsSetupCompleted": false },
   "id": "02-rag-upsert-notion",

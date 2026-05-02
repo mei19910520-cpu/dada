@@ -187,7 +187,7 @@
     "查詢Embeddings": {}
   },
   "active": true,
-  "settings": { "executionOrder": "v1" },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "_template-error-handler" },
   "versionId": "00000007-kbg-0000-0000-000000000007",
   "meta": { "templateCredsSetupCompleted": false },
   "id": "07-knowledge-book-generator",

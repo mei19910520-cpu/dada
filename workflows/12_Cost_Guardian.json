@@ -1,0 +1,187 @@
+{
+  "name": "[12] Cost Guardian — API 成本守門",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cg-trigger-001",
+      "name": "每小時觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(SUM(cost_usd), 0)::float AS today_cost, COALESCE(SUM(total_tokens), 0)::bigint AS today_tokens, COUNT(*)::int AS today_calls FROM api_usage_log WHERE occurred_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'Asia/Taipei') AT TIME ZONE 'Asia/Taipei';",
+        "options": {}
+      },
+      "id": "cg-query-002",
+      "name": "查詢今日累計成本",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [480, 300],
+      "credentials": {
+        "postgres": { "id": "postgres-cred", "name": "PostgreSQL" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $json;\nconst budget = parseFloat($env.DAILY_BUDGET_USD || '5.0');\nconst alertThreshold = parseFloat($env.COST_ALERT_THRESHOLD || '0.8');\nconst todayCost = parseFloat(row.today_cost || 0);\nconst pct = budget > 0 ? todayCost / budget : 0;\n\nlet action = 'ok';\nlet level = 'info';\nlet title = '';\nlet message = '';\n\nif (pct >= 1.0) {\n  action = 'pause';\n  level = 'critical';\n  title = '🔥 已超出每日 API 預算';\n  message = `今日累計：$${todayCost.toFixed(4)} / 預算：$${budget.toFixed(2)} (${(pct*100).toFixed(1)}%)\\n已自動暫停高頻 workflow（01 知識攝取、04 自主學習）。\\n如需繼續，請手動到 n8n 控制台 reactivate。`;\n} else if (pct >= alertThreshold) {\n  action = 'warn';\n  level = 'warning';\n  title = '⚠️ API 成本接近預算上限';\n  message = `今日累計：$${todayCost.toFixed(4)} / 預算：$${budget.toFixed(2)} (${(pct*100).toFixed(1)}%)\\n建議檢視 workflow 執行頻率。`;\n}\n\nreturn [{\n  json: {\n    action, level, title, message,\n    today_cost: todayCost,\n    today_tokens: parseInt(row.today_tokens || 0),\n    today_calls: parseInt(row.today_calls || 0),\n    budget, percentage: pct,\n    should_notify: action !== 'ok',\n    should_pause: action === 'pause'\n  }\n}];"
+      },
+      "id": "cg-eval-003",
+      "name": "評估預算狀態",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "should-pause",
+              "leftValue": "={{ $json.should_pause }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      },
+      "id": "cg-ifpause-004",
+      "name": "需要暫停?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://n8n_main:5678/api/v1/workflows/01-knowledge-ingestion/deactivate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-N8N-API-KEY", "value": "={{ $env.N8N_API_KEY }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "cg-pause1-005",
+      "name": "暫停 01 知識攝取",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://n8n_main:5678/api/v1/workflows/04-self-learning-loop/deactivate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-N8N-API-KEY", "value": "={{ $env.N8N_API_KEY }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "cg-pause2-006",
+      "name": "暫停 04 自主學習",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 250],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "should-notify",
+              "leftValue": "={{ $json.should_notify }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      },
+      "id": "cg-ifnotify-007",
+      "name": "需要通知?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [960, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.WEBHOOK_URL }}/webhook/notification-hub",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: 'all', level: $json.level, title: $json.title, message: $json.message, source: '12_Cost_Guardian' }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "cg-notify-008",
+      "name": "發送告警",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "每小時觸發": {
+      "main": [[{ "node": "查詢今日累計成本", "type": "main", "index": 0 }]]
+    },
+    "查詢今日累計成本": {
+      "main": [[{ "node": "評估預算狀態", "type": "main", "index": 0 }]]
+    },
+    "評估預算狀態": {
+      "main": [
+        [
+          { "node": "需要暫停?", "type": "main", "index": 0 },
+          { "node": "需要通知?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "需要暫停?": {
+      "main": [
+        [
+          { "node": "暫停 01 知識攝取", "type": "main", "index": 0 },
+          { "node": "暫停 04 自主學習", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "需要通知?": {
+      "main": [
+        [{ "node": "發送告警", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "_template-error-handler"
+  },
+  "versionId": "0000000c-cg-00000-0000-00000000000c",
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "12-cost-guardian",
+  "tags": [
+    { "name": "AI-RnD-Dept", "id": "tag-ai-rnd" },
+    { "name": "Infrastructure", "id": "tag-infra" }
+  ]
+}
