@@ -95,3 +95,13 @@ cp .env.example .env
   ↓
 08:00 Daily Briefing → Telegram通知 + Notion記錄
 ```
+
+## 行銷部門擴充（2026-04）
+
+新增一套可直接落地的 AI 行銷部門模組：
+
+- 文件：`MARKETING_DEPARTMENT.md`
+- Prompts：`prompts/10~15_*.md`
+- Workflows：`workflows/10~15_*.json`
+
+建議先匯入 `10_Monthly_Marketing_Brain`，再依序匯入 `11~15`。

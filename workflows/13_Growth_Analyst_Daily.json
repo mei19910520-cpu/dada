@@ -1,0 +1,48 @@
+{
+  "name": "[13] Growth_Analyst_Daily — 每日成效優化",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 22 }] } },
+      "id": "ga-trigger-001",
+      "name": "每日觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 260]
+    },
+    {
+      "parameters": { "jsCode": "return [{json:{metrics:{ctr:0.023, engagement_rate:0.051, conversion_rate:0.012}, note:'示範資料，請替換為平台 API'}}];" },
+      "id": "ga-metrics-002",
+      "name": "整理平台數據",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 260]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Growth Analyst AI，根據指標{{ JSON.stringify($json.metrics) }}輸出top_patterns/stop_doing/scale_up/ab_test_next/predicted_roi(JSON)。" },
+      "id": "ga-agent-003",
+      "name": "成長分析Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, 260]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.3 } },
+      "id": "ga-llm-004",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [660, 460],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    }
+  ],
+  "connections": {
+    "每日觸發": { "main": [[{ "node": "整理平台數據", "type": "main", "index": 0 }]] },
+    "整理平台數據": { "main": [[{ "node": "成長分析Agent", "type": "main", "index": 0 }]] },
+    "LLM": { "ai_languageModel": [[{ "node": "成長分析Agent", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000013-ga-0000-0000-000000000013",
+  "id": "13-growth-analyst-daily",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}

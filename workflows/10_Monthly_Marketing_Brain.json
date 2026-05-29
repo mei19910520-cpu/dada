@@ -1,0 +1,54 @@
+{
+  "name": "[10] Monthly_Marketing_Brain — 月度行銷策略中樞",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "months", "triggerAtDay": 1, "triggerAtHour": 9 }] } },
+      "id": "mkb-trigger-001",
+      "name": "每月觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { month: new Date().toISOString().slice(0,7), kpi_goal: { impressions: 200000, leads: 120 }, context: '請根據上月結果規劃4大主題' } }];"
+      },
+      "id": "mkb-context-002",
+      "name": "組裝策略上下文",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 280]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "你是 Marketing Director AI。輸入：{{ JSON.stringify($json) }}。請輸出4大行銷主題與分工任務，回傳JSON。",
+        "options": {}
+      },
+      "id": "mkb-agent-003",
+      "name": "行銷經理Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [680, 280]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.4 } },
+      "id": "mkb-llm-004",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [680, 500],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    }
+  ],
+  "connections": {
+    "每月觸發": { "main": [[{ "node": "組裝策略上下文", "type": "main", "index": 0 }]] },
+    "組裝策略上下文": { "main": [[{ "node": "行銷經理Agent", "type": "main", "index": 0 }]] },
+    "LLM": { "ai_languageModel": [[{ "node": "行銷經理Agent", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000010-mkb-0000-0000-000000000010",
+  "id": "10-monthly-marketing-brain",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}

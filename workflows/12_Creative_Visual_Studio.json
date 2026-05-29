@@ -1,0 +1,48 @@
+{
+  "name": "[12] Creative_Visual_Studio — 視覺與短影音工作室",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "creative-visual", "responseMode": "responseNode" },
+      "id": "cv-webhook-001",
+      "name": "接收內容",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Creative Visual AI。輸入：{{ JSON.stringify($json.body || $json) }}。輸出image_prompt_refined、reels_script、story_layout(JSON)。" },
+      "id": "cv-agent-002",
+      "name": "視覺生成Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [460, 300]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.6 } },
+      "id": "cv-llm-003",
+      "name": "LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [460, 520],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify({ status: 'ok', output: $json.output || $json.text || $json }) }}" },
+      "id": "cv-respond-004",
+      "name": "回傳視覺素材",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "接收內容": { "main": [[{ "node": "視覺生成Agent", "type": "main", "index": 0 }]] },
+    "視覺生成Agent": { "main": [[{ "node": "回傳視覺素材", "type": "main", "index": 0 }]] },
+    "LLM": { "ai_languageModel": [[{ "node": "視覺生成Agent", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000012-cv-0000-0000-000000000012",
+  "id": "12-creative-visual-studio",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}
