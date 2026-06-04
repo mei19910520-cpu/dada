@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "content_queue row",
+  "description": "One row per planned/published post. Backed by Notion content_queue.",
+  "type": "object",
+  "required": ["id", "platform", "slot_time", "angle", "hook", "caption", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "platform": { "enum": ["instagram", "facebook", "x", "tiktok", "linkedin"] },
+    "slot_time": { "type": "string", "format": "date-time" },
+    "angle": { "type": "string" },
+    "angle_type": { "type": "string", "description": "category used by strategy_weights" },
+    "hook": { "type": "string" },
+    "caption": { "type": "string" },
+    "cta": { "type": "string" },
+    "hashtags": { "type": "array", "items": { "type": "string" } },
+    "alt_text": { "type": "string" },
+    "first_comment": { "type": "string" },
+    "visual_prompt": { "type": "string" },
+    "media_url": { "type": "string" },
+    "media_type": { "enum": ["image", "carousel", "video", "none"] },
+    "source_evidence": { "type": "array", "items": { "type": "string" } },
+    "brand_fit": { "type": "number", "minimum": 0, "maximum": 1 },
+    "predicted_engagement": { "type": "number", "minimum": 0, "maximum": 1 },
+    "guardrail": {
+      "type": "object",
+      "properties": {
+        "hard_block": { "type": "boolean" },
+        "soft_flags": { "type": "array", "items": { "type": "string" } },
+        "reason": { "type": "string" }
+      }
+    },
+    "status": {
+      "enum": ["drafted", "flagged", "approved", "scheduled", "published", "rejected", "failed", "retired"]
+    },
+    "published": {
+      "type": "object",
+      "properties": {
+        "post_id": { "type": "string" },
+        "permalink": { "type": "string" },
+        "published_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

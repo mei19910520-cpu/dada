@@ -1,0 +1,62 @@
+{
+  "brand": "YOUR_BRAND_NAME",
+  "tagline": "one-line promise",
+  "pillars": [
+    "topic territory 1",
+    "topic territory 2",
+    "topic territory 3",
+    "topic territory 4"
+  ],
+  "voice": {
+    "tone": "e.g. confident, warm, no-fluff",
+    "traits": ["clear", "useful", "a little playful"],
+    "do": [
+      "lead with the value in the first line",
+      "short sentences, active voice",
+      "back claims with a number or example"
+    ],
+    "dont": [
+      "no hype superlatives (best/#1/guaranteed)",
+      "no jargon without a plain-language gloss",
+      "no engagement-bait (comment YES)"
+    ],
+    "emoji_policy": "sparingly, max 2 per post, never in LinkedIn first line"
+  },
+  "banned_terms": ["cure", "guaranteed returns", "miracle", "100%"],
+  "required_disclaimers": {
+    "sponsored": "#ad",
+    "affiliate": "Contains affiliate links.",
+    "ai_image": "AI-generated image",
+    "health": "Not medical advice.",
+    "finance": "Not financial advice."
+  },
+  "palette": {
+    "primary": "#0F172A",
+    "secondary": "#6366F1",
+    "accent": "#22D3EE",
+    "background": "#FFFFFF",
+    "text": "#0F172A"
+  },
+  "fonts": { "heading": "Inter Bold", "body": "Inter Regular" },
+  "logo": { "url": "https://.../logo.png", "placement": "bottom-right", "min_clear_space_px": 24 },
+  "templates": {
+    "quote_card": "centered headline, accent underline, logo br",
+    "carousel_cover": "big hook, slide counter, swipe cue",
+    "reel_cover": "1-line hook top-third, bold, high contrast"
+  },
+  "allocation": {
+    "instagram": 2,
+    "tiktok": 1,
+    "x": 4,
+    "facebook": 1,
+    "linkedin": 1
+  },
+  "accounts": {
+    "instagram": { "handle": "@brand", "link": "https://...", "paused": false },
+    "facebook":  { "page": "BrandPage", "link": "https://...", "paused": false },
+    "x":         { "handle": "@brand", "link": "https://...", "paused": false },
+    "tiktok":    { "handle": "@brand", "link": "https://...", "paused": false },
+    "linkedin":  { "org": "company/brand", "link": "https://...", "paused": false }
+  },
+  "newsjack_blocklist": ["death", "tragedy", "disaster", "politics", "religion", "war", "lawsuit"]
+}
