@@ -83,3 +83,14 @@
 - 先以 `gpt-4o-mini` 跑全流程，確保成本可控。
 - 表現最佳內容可升級至 `gpt-4o` 做二次精修。
 - 建立「停發規則」：連續 7 天低於基準表現的內容角度自動下架。
+
+## 自主社群帝國 Skill（2026-06）
+
+在行銷部門之上，新增一套「全自動社群帝國」Agent Skill，串接 FB / IG / X /
+TikTok / LinkedIn 的研究→生成→排程→發佈→互動→分析→自我迭代閉環：
+
+- Skill：`.claude/skills/social-media-empire/`（`SKILL.md` + `references/` + `assets/`）
+- Workflow：`workflows/16_Social_Empire_Orchestrator.json`（請於 `10~15` 之後匯入）
+- 內含護欄（guardrails）、評估指標（eval metrics）、品牌一致性系統與每日單一人工審核閘門。
+
+當需要「建立／調整／除錯自動社群流程」時，Claude 會自動載入此 Skill。

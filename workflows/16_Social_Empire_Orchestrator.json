@@ -1,0 +1,188 @@
+{
+  "name": "[16] Social_Empire_Orchestrator — 自主社群帝國主循環",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 6, "triggerAtMinute": 30 }] } },
+      "id": "se-trigger-001",
+      "name": "每日 06:30 觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": { "httpMethod": "POST", "path": "social-empire/run" },
+      "id": "se-hook-002",
+      "name": "手動觸發 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 460]
+    },
+    {
+      "parameters": { "jsCode": "if (($env.EMERGENCY_STOP||'false')==='true') { return []; } return items;" },
+      "id": "se-killswitch-003",
+      "name": "Kill-switch 檢查",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Trend Scout。整合 X/TikTok/IG/LinkedIn/Google Trends 與競品 feed，輸出 trend_pool（15-30 個 angle），每個含 angle/evidence/momentum/brand_fit/platforms/freshness_hours/saturation。排除 newsjack_blocklist。見 references/workflow-pipeline.md。" },
+      "id": "se-research-004",
+      "name": "1. Research 趨勢研究",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [640, 360]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Strategy Brain。用 priority 公式（momentum/brand_fit/predicted_engagement/saturation/strategy_weight）排序 trend_pool，依 allocation 分配到 IG/FB/X/TikTok/LinkedIn，產出 24h content_calendar，寫入 content_queue（status=drafted）。保留 20% 探索額度。" },
+      "id": "se-strategy-005",
+      "name": "2. Strategize 策略排程",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [860, 360]
+    },
+    {
+      "parameters": { "url": "={{ $env.WEBHOOK_URL }}/webhook/content-generator", "options": {} },
+      "id": "se-create-copy-006",
+      "name": "3a. Create 文案 (reuse 11)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 280]
+    },
+    {
+      "parameters": { "url": "={{ $env.WEBHOOK_URL }}/webhook/creative-visual", "options": {} },
+      "id": "se-create-art-007",
+      "name": "3b. Create 視覺 (reuse 12)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 440]
+    },
+    {
+      "parameters": { "jsCode": "// Stage 4 guardrail scan — see references/guardrails.md\nconst banned=($env.BANNED_TERMS||'cure,guaranteed returns,miracle,100%').split(',');\nreturn items.map(i=>{const t=(i.json.caption||'')+' '+(i.json.hook||'');const hit=banned.find(b=>t.toLowerCase().includes(b.trim().toLowerCase()));i.json.guardrail={hard_block:!!hit||(i.json.brand_fit||1)<0.6,reason:hit?('banned:'+hit):''};i.json.status=i.json.guardrail.hard_block?'flagged':i.json.status;return i;});" },
+      "id": "se-guardrail-008",
+      "name": "4a. Guardrail 掃描",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 360]
+    },
+    {
+      "parameters": { "chatId": "={{ $env.TELEGRAM_CHAT_ID }}", "text": "=今日待審 {{ $json.length }} 則貼文。回覆 approve all / approve except [ids] / reject [id] / pause。", "additionalFields": {} },
+      "id": "se-gate-009",
+      "name": "4b. 每日人工審核閘門",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1520, 360],
+      "credentials": { "telegramApi": { "id": "telegram-cred", "name": "Telegram Bot" } }
+    },
+    {
+      "parameters": { "httpMethod": "POST", "path": "social-empire/approve" },
+      "id": "se-approve-010",
+      "name": "審核回呼 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [1520, 520]
+    },
+    {
+      "parameters": { "jsCode": "// Stage 5/6: rate-cap + dry_run guard then fan out per platform — see n8n-integration.md\nconst mode=$env.PUBLISH_MODE||'dry_run';\nreturn items.filter(i=>i.json.status==='approved'||i.json.status==='scheduled').map(i=>{i.json.publish_mode=mode;return i;});" },
+      "id": "se-publish-router-011",
+      "name": "5+6. 排程+發佈路由",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 360]
+    },
+    {
+      "parameters": { "url": "https://graph.facebook.com/v21.0/{{ $env.META_IG_BUSINESS_ID }}/media", "options": {} },
+      "id": "se-pub-ig-012",
+      "name": "發佈 Instagram/FB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 220]
+    },
+    {
+      "parameters": { "url": "https://api.twitter.com/2/tweets", "options": {} },
+      "id": "se-pub-x-013",
+      "name": "發佈 X",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 340]
+    },
+    {
+      "parameters": { "url": "https://open.tiktokapis.com/v2/post/publish/video/init/", "options": {} },
+      "id": "se-pub-tt-014",
+      "name": "發佈 TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 460]
+    },
+    {
+      "parameters": { "url": "https://api.linkedin.com/rest/posts", "options": {} },
+      "id": "se-pub-li-015",
+      "name": "發佈 LinkedIn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 580]
+    },
+    {
+      "parameters": { "httpMethod": "POST", "path": "social-empire/engage" },
+      "id": "se-engage-hook-016",
+      "name": "7. 互動事件 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 640]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Engagement Triage AI。將留言/提及/私訊分三層：auto-reply / draft-for-approval / escalate。套用 guardrails.md 規則與 rate caps，回覆需通過品牌語氣檢查，寫入 engagement_log。" },
+      "id": "se-engage-017",
+      "name": "7. 互動分流 Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [440, 640]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 23, "triggerAtMinute": 30 }] } },
+      "id": "se-analyze-trigger-018",
+      "name": "每日 23:30 分析觸發",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 800]
+    },
+    {
+      "parameters": { "promptType": "define", "text": "你是 Growth Analyst + 自我迭代引擎。用真實 API 指標計算 post_score，更新 strategy_weights / best_times / predicted_engagement，提拔 gold exemplars，淘汰連 7 天 post_score<-0.5 的 angle，輸出每日 operator report 到 Telegram + Notion。見 eval-metrics.md。" },
+      "id": "se-analyze-019",
+      "name": "8. Analyze + Self-Iterate",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [440, 800]
+    },
+    {
+      "parameters": { "model": "gpt-4o-mini", "options": { "temperature": 0.6 } },
+      "id": "se-llm-020",
+      "name": "LLM (gpt-4o-mini)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [640, 980],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI API" } }
+    }
+  ],
+  "connections": {
+    "每日 06:30 觸發": { "main": [[{ "node": "Kill-switch 檢查", "type": "main", "index": 0 }]] },
+    "手動觸發 Webhook": { "main": [[{ "node": "Kill-switch 檢查", "type": "main", "index": 0 }]] },
+    "Kill-switch 檢查": { "main": [[{ "node": "1. Research 趨勢研究", "type": "main", "index": 0 }]] },
+    "1. Research 趨勢研究": { "main": [[{ "node": "2. Strategize 策略排程", "type": "main", "index": 0 }]] },
+    "2. Strategize 策略排程": { "main": [[{ "node": "3a. Create 文案 (reuse 11)", "type": "main", "index": 0 }, { "node": "3b. Create 視覺 (reuse 12)", "type": "main", "index": 0 }]] },
+    "3a. Create 文案 (reuse 11)": { "main": [[{ "node": "4a. Guardrail 掃描", "type": "main", "index": 0 }]] },
+    "3b. Create 視覺 (reuse 12)": { "main": [[{ "node": "4a. Guardrail 掃描", "type": "main", "index": 0 }]] },
+    "4a. Guardrail 掃描": { "main": [[{ "node": "4b. 每日人工審核閘門", "type": "main", "index": 0 }]] },
+    "4b. 每日人工審核閘門": { "main": [[{ "node": "5+6. 排程+發佈路由", "type": "main", "index": 0 }]] },
+    "審核回呼 Webhook": { "main": [[{ "node": "5+6. 排程+發佈路由", "type": "main", "index": 0 }]] },
+    "5+6. 排程+發佈路由": { "main": [[{ "node": "發佈 Instagram/FB", "type": "main", "index": 0 }, { "node": "發佈 X", "type": "main", "index": 0 }, { "node": "發佈 TikTok", "type": "main", "index": 0 }, { "node": "發佈 LinkedIn", "type": "main", "index": 0 }]] },
+    "7. 互動事件 Webhook": { "main": [[{ "node": "7. 互動分流 Agent", "type": "main", "index": 0 }]] },
+    "每日 23:30 分析觸發": { "main": [[{ "node": "8. Analyze + Self-Iterate", "type": "main", "index": 0 }]] },
+    "LLM (gpt-4o-mini)": { "ai_languageModel": [[{ "node": "1. Research 趨勢研究", "type": "ai_languageModel", "index": 0 }, { "node": "2. Strategize 策略排程", "type": "ai_languageModel", "index": 0 }, { "node": "7. 互動分流 Agent", "type": "ai_languageModel", "index": 0 }, { "node": "8. Analyze + Self-Iterate", "type": "ai_languageModel", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "00000016-se-0000-0000-000000000016",
+  "id": "16-social-empire-orchestrator",
+  "tags": [{ "name": "AI-Marketing-Dept", "id": "tag-ai-mkt" }]
+}
