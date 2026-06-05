@@ -1,0 +1,58 @@
+{
+  "brand": "MAUYUAN 喵苑",
+  "tagline": "一場命中註定的相遇，一段無可取代的陪伴。",
+  "market": "Taiwan / zh-Hant",
+  "category": "British Shorthair Cattery 英國短毛貓貓舍",
+  "pillars": [
+    "幼貓日常與性格 (cuteness + personality)",
+    "健康照護與飼養知識 (care & education)",
+    "貓舍透明度與信任 (transparency & trust: 排隊/健檢/絕育流程)",
+    "家長故事與陪伴 (owner stories & companionship)"
+  ],
+  "voice": {
+    "tone": "溫暖、優雅、可信賴，像懂貓的朋友",
+    "traits": ["warm", "elegant", "knowledgeable", "calm"],
+    "do": [
+      "用陪伴與情感切入，先給價值再談服務",
+      "短句、口語、Traditional Chinese 為主，專有名詞可中英並列",
+      "照護建議要具體可執行，附上原因"
+    ],
+    "dont": [
+      "不誇大、不用『保證健康/最棒/第一』等無依據說法",
+      "不情緒勒索、不販賣焦慮",
+      "不與品牌定位衝突（不喊『領養代替購買』）"
+    ],
+    "emoji_policy": "克制，每篇最多 2 個，LinkedIn 首行不放"
+  },
+  "banned_terms": ["保證健康", "保證", "最棒", "第一品牌", "100%", "包健康", "穩賺", "神奇"],
+  "required_disclaimers": {
+    "health": "健康狀況以交付前專業健檢報告為準。",
+    "ai_image": "示意圖",
+    "pricing": "實際費用與流程以官方表單與合約為準。"
+  },
+  "palette": {
+    "primary": "#6f4d38",
+    "secondary": "#8d6d58",
+    "accent": "#b6957b",
+    "background": "#f5f2ef",
+    "paper": "#f8f5f2",
+    "line": "#d9c9bc",
+    "text": "#6f4d38"
+  },
+  "fonts": { "heading": "Noto Serif TC SemiBold", "body": "Noto Serif TC Regular" },
+  "logo": { "url": "https://mauyuan.example/logo.png", "placement": "bottom-right", "min_clear_space_px": 24 },
+  "templates": {
+    "quote_card": "米色紙感底，棕字襯線標題，accent 細線，logo 右下",
+    "carousel_cover": "大字 hook + 幼貓主視覺 + 翻頁提示",
+    "reel_cover": "上三分之一一句 hook，暖色高對比"
+  },
+  "allocation": { "instagram": 2, "tiktok": 1, "x": 1, "facebook": 1, "linkedin": 1 },
+  "accounts": {
+    "instagram": { "handle": "@mauyuan.cattery", "link": "https://mauyuan.example", "paused": false },
+    "facebook":  { "page": "MAUYUAN 喵苑", "link": "https://mauyuan.example", "paused": false },
+    "x":         { "handle": "@mauyuan_cattery", "link": "https://mauyuan.example", "paused": false },
+    "tiktok":    { "handle": "@mauyuan.cattery", "link": "https://mauyuan.example", "paused": false },
+    "linkedin":  { "org": "company/mauyuan", "link": "https://mauyuan.example", "paused": false }
+  },
+  "newsjack_blocklist": ["death", "tragedy", "disaster", "politics", "religion", "war", "lawsuit", "動物虐待時事"]
+}

@@ -1,0 +1,83 @@
+{
+  "run_date": "2026-06-05",
+  "operator_tz": "Asia/Taipei",
+  "publish_mode": "dry_run",
+  "brand_kit": "assets/brand_kit.mauyuan.json",
+  "killswitch": { "emergency_stop": false, "paused_accounts": [] },
+  "trend_pool_top": [
+    { "angle": "夏季英短散熱照護（厚毛+台灣濕熱）", "platforms": ["IG","TikTok","FB","X"], "momentum": "rising(seasonal)", "brand_fit": 0.92, "saturation": 0.45, "freshness": "evergreen-seasonal" },
+    { "angle": "英短幼貓性格/呆萌日常", "platforms": ["IG","TikTok"], "momentum": "steady-high", "brand_fit": 0.95, "saturation": 0.7 },
+    { "angle": "貓舍透明流程：排隊/健檢/絕育押金", "platforms": ["FB","LinkedIn"], "momentum": "steady", "brand_fit": 0.9, "saturation": 0.3 },
+    { "angle": "家長陪伴故事（命中註定的相遇）", "platforms": ["IG","FB"], "momentum": "steady", "brand_fit": 0.93, "saturation": 0.4 }
+  ],
+  "calendar": [
+    {
+      "id": "20260605-x-01", "platform": "x", "slot_time": "2026-06-05T09:00:00+08:00",
+      "angle_type": "care", "media_type": "image",
+      "hook": "夏天到了，你家的英短其實比你更怕熱 🐱",
+      "caption": "英短一身厚毛，台灣濕熱的夏天散熱特別吃力。三個簡單動作幫牠降溫：\n1. 室溫維持 24–26°C，避免直吹冷氣\n2. 隨時有乾淨涼水，可放一兩顆冰塊\n3. 用微濕毛巾順著毛輕擦肚子與腳掌\n你家貓主子夏天最愛躺哪？",
+      "cta": "留言分享牠的避暑地點", "hashtags": ["#英國短毛貓", "#英短"],
+      "alt_text": "一隻藍灰色英國短毛貓趴在涼磁磚地板上",
+      "visual_prompt": "British Shorthair blue cat lying on cool tiled floor, warm beige interior, soft serif brand palette #6f4d38/#b6957b, 16:9, gentle natural light, 示意圖",
+      "brand_fit": 0.9, "predicted_engagement": 0.5,
+      "guardrail": { "hard_block": false, "soft_flags": [], "reason": "" }, "status": "drafted"
+    },
+    {
+      "id": "20260605-ig-01", "platform": "instagram", "slot_time": "2026-06-05T11:30:00+08:00",
+      "angle_type": "care", "media_type": "video",
+      "hook": "幫英短過一個不中暑的夏天 ☀️",
+      "caption": "厚毛的英短最怕悶熱。收藏這份夏季照護清單 👇\n・室溫 24–26°C，避免悶不通風\n・濕度控制在 50–60%\n・水量加倍，分多處擺放\n・觀察：張口呼吸、食慾下降要提高警覺\n為牠把夏天過得舒服一點。",
+      "cta": "收藏起來，換季時拿出來看", "hashtags": ["#英國短毛貓","#英短","#貓咪照護","#BritishShorthair","#MAUYUAN","#貓咪日常","#夏季照護"],
+      "alt_text": "英國短毛貓在涼爽室內伸懶腰的短影音封面",
+      "visual_prompt": "Reel cover, British Shorthair stretching in cool beige room, top-third one-line hook in Noto Serif TC, palette #6f4d38/#f5f2ef, 9:16, high contrast, 示意圖",
+      "brand_fit": 0.93, "predicted_engagement": 0.5,
+      "guardrail": { "hard_block": false, "soft_flags": [], "reason": "" }, "status": "drafted"
+    },
+    {
+      "id": "20260605-tt-01", "platform": "tiktok", "slot_time": "2026-06-05T12:30:00+08:00",
+      "angle_type": "cuteness", "media_type": "video",
+      "hook": "英短聽到『開冷氣』的反應（0–1 秒抓住你）",
+      "caption": "牠：終於等到這一刻 😼 夏天的英短最懂享受。#英短 #貓咪日常",
+      "cta": "tag 一個夏天也很懶的朋友", "hashtags": ["#英短","#英國短毛貓","#貓咪","#fyp","#cattok"],
+      "alt_text": "英國短毛貓走向冷氣出風口舒服瞇眼的短影片",
+      "visual_prompt": "9:16 short video shot-list: (1s) cat perks up at AC sound, (build) saunters to vent, (loop) blissful squint; trending calm audio; on-screen text hook; 示意圖",
+      "brand_fit": 0.88, "predicted_engagement": 0.5,
+      "guardrail": { "hard_block": false, "soft_flags": [], "reason": "" }, "status": "drafted"
+    },
+    {
+      "id": "20260605-fb-01", "platform": "facebook", "slot_time": "2026-06-05T13:30:00+08:00",
+      "angle_type": "trust", "media_type": "image",
+      "hook": "為什麼我們堅持『交付前專業健檢 + 完整報告』？",
+      "caption": "把一隻幼貓交到你手上之前，我們會安排專業健檢並提供完整報告，健康狀況以該報告為準。\n從登記排隊、現貓挑選到完成交付，每一步都希望讓新手家長也能安心。\n這不只是流程，是我們對『一段無可取代的陪伴』的承諾。\n想了解排隊與挑選流程嗎？",
+      "cta": "私訊或填寫官方表單了解流程", "hashtags": ["#英短貓舍","#MAUYUAN","#負責任貓舍"],
+      "alt_text": "獸醫為英國短毛貓幼貓進行健康檢查",
+      "visual_prompt": "Vet gently health-checking a British Shorthair kitten, clean warm clinic, brand palette, 4:5, trustworthy calm tone, 示意圖",
+      "brand_fit": 0.92, "predicted_engagement": 0.5,
+      "guardrail": { "hard_block": false, "soft_flags": [], "reason": "claim about health-check process is factual to stated flow; disclaimer appended" }, "status": "drafted"
+    },
+    {
+      "id": "20260605-ig-02", "platform": "instagram", "slot_time": "2026-06-05T19:30:00+08:00",
+      "angle_type": "owner_story", "media_type": "carousel",
+      "hook": "『牠選的是我。』— 一位家長的相遇故事",
+      "caption": "有人說挑貓，其實常常是貓挑人。\n滑動看看這段命中註定的相遇，以及牠到家後的第一個夜晚 →\n（Slide 1 相遇 / 2 第一晚 / 3 一個月後 / 4 現在）\n你和你家貓主子，是怎麼遇見的？",
+      "cta": "留言說說你們的相遇", "hashtags": ["#英國短毛貓","#英短","#領養前先了解","#貓咪陪伴","#MAUYUAN","#貓奴日常","#命中註定的相遇"],
+      "alt_text": "四格輪播：家長與英國短毛貓從相遇到日常的故事",
+      "visual_prompt": "4-slide carousel, warm storytelling of owner + British Shorthair, serif captions, palette #6f4d38/#b6957b, 4:5, swipe cue on cover, 示意圖",
+      "brand_fit": 0.94, "predicted_engagement": 0.5,
+      "guardrail": { "hard_block": false, "soft_flags": ["new_format: first owner-story carousel — watch save-rate"], "reason": "" }, "status": "flagged"
+    },
+    {
+      "id": "20260605-li-01", "platform": "linkedin", "slot_time": "2026-06-09T08:30:00+08:00",
+      "angle_type": "trust", "media_type": "image",
+      "hook": "負責任的繁育，是一門關於信任的長期事業。",
+      "caption": "經營一間英短貓舍，最難的不是繁育，是建立信任。\n我們把流程透明化：候補登記、健康透明、絕育押金於約定月齡完成後全額退還、交付前完整健檢報告。\n對我們而言，每一個標準都是在保護幼貓，也保護家長的期待。\n如果你正在思考如何用『可信賴的流程』經營專業服務，這些原則或許也通用。",
+      "cta": "歡迎交流負責任繁育與服務透明化的做法", "hashtags": ["#負責任繁育","#寵物產業","#品牌信任"],
+      "alt_text": "專業且整潔的貓舍環境，象徵透明與負責任的繁育標準",
+      "visual_prompt": "Clean professional cattery environment, soft warm light, brand palette, 1.91:1, B2B trustworthy tone, 示意圖",
+      "brand_fit": 0.88, "predicted_engagement": 0.5,
+      "guardrail": { "hard_block": false, "soft_flags": ["off-optimal-day: 週五非 LinkedIn 最佳時段 → 已改排 週二(06-09) 08:30"], "reason": "" }, "status": "flagged"
+    }
+  ],
+  "guardrail_summary": { "scanned": 6, "hard_blocked": 0, "soft_flagged": 2, "banned_term_hits": 0, "duplicates": 0 },
+  "awaiting_human_gate": true
+}
