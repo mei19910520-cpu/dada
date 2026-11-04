@@ -12,10 +12,9 @@ let recoveringPassword = new URLSearchParams(location.search).get('type') === 'r
   new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
 
 if (form) {
-  // If a verified session already exists, no need to log in again.
-  supabase.auth.getUser().then(({ data, error }) => {
-    if (!recoveringPassword && !error && data.user) location.replace(dashboardPage.href);
-  }).catch(() => {});
+  // Never auto-redirect from the login page: password recovery links can
+  // establish a valid session before PASSWORD_RECOVERY is emitted.
+  // Users reach the dashboard only after an explicit successful login/signup.
   let busy = false;
   async function handleAuth(mode) {
     if (busy || !form.reportValidity()) return;
