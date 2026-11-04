@@ -55,22 +55,40 @@ if (form) {
       setStatus('若此信箱可使用密碼重設功能，請依收到的郵件操作。');
     } catch (error) { setStatus(error.message || '無法寄送重設郵件。', true); }
   });
+  const recoveryForm = document.querySelector('#recovery-form');
+  const showRecovery = () => {
+    recoveringPassword = true;
+    form.hidden = true;
+    recoveryForm.hidden = false;
+    setStatus('請設定新密碼以完成密碼重設。');
+  };
+  if (recoveringPassword) showRecovery();
   supabase.auth.onAuthStateChange((event) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      recoveringPassword = true;
-      setStatus('請設定新密碼以完成密碼重設。');
-      const password = window.prompt('請輸入新密碼（至少 6 個字元）');
-      if (password && password.length >= 6) {
-        setTimeout(async () => {
-          const { error } = await supabase.auth.updateUser({ password });
-          setStatus(error ? error.message : '密碼已更新，請登入。', !!error);
-          if (!error) {
-            const { error: signOutError } = await supabase.auth.signOut();
-            if (signOutError) setStatus('密碼已更新，但登出失敗：' + signOutError.message, true);
-            else recoveringPassword = false;
-          }
-        }, 0);
+    if (event === 'PASSWORD_RECOVERY') showRecovery();
+  });
+  recoveryForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!recoveryForm.reportValidity()) return;
+    const button = document.querySelector('#save-password');
+    button.disabled = true;
+    try {
+      const password = document.querySelector('#new-password').value;
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        setStatus('密碼已更新，但登出失敗：' + signOutError.message, true);
+        return;
       }
+      recoveringPassword = false;
+      recoveryForm.hidden = true;
+      form.hidden = false;
+      form.reset();
+      setStatus('密碼已更新，請使用新密碼登入。');
+    } catch (error) {
+      setStatus(error.message || '密碼更新失敗，請重試。', true);
+    } finally {
+      button.disabled = false;
     }
   });
 }
