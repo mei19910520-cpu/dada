@@ -7,11 +7,14 @@ const setStatus = (message, error = false) => {
 };
 const authPage = new URL('./auth.html', location.href);
 const dashboardPage = new URL('./dashboard.html', location.href);
+// Recovery links establish a session; do not treat that as a normal login.
+let recoveringPassword = new URLSearchParams(location.search).get('type') === 'recovery' ||
+  new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
 
 if (form) {
   // If a verified session already exists, no need to log in again.
   supabase.auth.getUser().then(({ data, error }) => {
-    if (!error && data.user) location.replace(dashboardPage.href);
+    if (!recoveringPassword && !error && data.user) location.replace(dashboardPage.href);
   }).catch(() => {});
   let busy = false;
   async function handleAuth(mode) {
@@ -55,12 +58,18 @@ if (form) {
   });
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') {
+      recoveringPassword = true;
+      setStatus('請設定新密碼以完成密碼重設。');
       const password = window.prompt('請輸入新密碼（至少 6 個字元）');
       if (password && password.length >= 6) {
         setTimeout(async () => {
           const { error } = await supabase.auth.updateUser({ password });
           setStatus(error ? error.message : '密碼已更新，請登入。', !!error);
-          if (!error) await supabase.auth.signOut();
+          if (!error) {
+            const { error: signOutError } = await supabase.auth.signOut();
+            if (signOutError) setStatus('密碼已更新，但登出失敗：' + signOutError.message, true);
+            else recoveringPassword = false;
+          }
         }, 0);
       }
     }
@@ -85,8 +94,19 @@ if (dashboard) {
     }
   }
   document.querySelector('#logout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    location.replace(authPage.href);
+    const logout = document.querySelector('#logout');
+    logout.disabled = true;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      location.replace(authPage.href);
+    } catch (error) {
+      logout.disabled = false;
+      if (checking) {
+        checking.hidden = false;
+        checking.textContent = '登出失敗，請重試：' + (error.message || '連線異常');
+      }
+    }
   });
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') { dashboard.hidden = true; location.replace(authPage.href); }
