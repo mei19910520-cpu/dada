@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>會員專區｜MAUYUAN 貓苑</title><link rel="stylesheet" href="./auth.css"></head>
+<body><main class="panel"><p class="brand">MAUYUAN ｜ 貓苑</p><h1>會員專區</h1>
+<p id="checking" role="status">正在確認登入狀態…</p>
+<section id="private-area" hidden aria-label="登入後會員資訊">
+<p>已登入帳號：<strong id="member-email"></strong></p>
+<p class="muted">此頁僅展示已驗證的帳號資訊。未來會員資料須透過 Supabase RLS 保護，不得直接寫入靜態 HTML。</p>
+<button type="button" id="logout">登出</button>
+</section>
+<p><a href="./index.html">返回公開網站</a></p>
+</main><script type="module" src="./auth.js"></script></body></html>
